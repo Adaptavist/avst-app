@@ -1,0 +1,74 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# TODO: make this run on Windows, see catalina.sh for deatils
+
+# run whatever is in catalina.sh as Atlassian provides various versions and it can not be handled generically 
+# Only set CATALINA_HOME if not already set
+[[ -z "${CATALINA_HOME:-}" ]] && CATALINA_HOME="${TOMCAT_DIR}"
+
+# Copy CATALINA_BASE from CATALINA_HOME if not already set
+[[ -z "${CATALINA_BASE:-}" ]] && CATALINA_BASE="$CATALINA_HOME"
+
+if [[ -z "${LOGGING_CONFIG:-}" ]]; then
+  if [[ -r "$CATALINA_BASE"/conf/logging.properties ]]; then
+    LOGGING_CONFIG="-Djava.util.logging.config.file=$CATALINA_BASE/conf/logging.properties"
+  else
+    # Bugzilla 45585
+    LOGGING_CONFIG="-Dnop"
+  fi
+fi
+
+CLASSPATH="${CATALINA_HOME}/bin/bootstrap.jar"
+# Copy driver for db to lib in case it is provided
+DRIVERS_COUNT="${DRIVERS_COUNT:-0}"
+ADDTITIONAL_SEQ=""
+if [[ "${DRIVERS_COUNT}" -gt "0" ]]; then 
+    ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${DRIVERS_COUNT} - 1)))
+    index=1
+    for i in '' ${ADDTITIONAL_SEQ} ; do
+        FILE_PATH=$( eval echo \$"DRIVER_PATH${i}" )
+        if [[ ! -z "${FILE_PATH}" && -f "${FILE_PATH}" ]]; then
+            CLASSPATH="${CLASSPATH}:${FILE_PATH}"
+            debug "${FILE_PATH} added to classpath"
+        fi
+    done
+fi
+
+if [[ -z "${LOGGING_MANAGER:-}" ]]; then
+    LOGGING_MANAGER="-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"
+    # Add tomcat-juli.jar to classpath
+    # tomcat-juli.jar can be over-ridden per instance
+    if [ -r "$CATALINA_BASE/bin/tomcat-juli.jar" ] ; then
+      CLASSPATH="${CLASSPATH}:${CATALINA_BASE}/bin/tomcat-juli.jar"
+    else
+      CLASSPATH="${CLASSPATH}:${CATALINA_HOME}/bin/tomcat-juli.jar"
+    fi
+fi
+
+CATALINA_TMPDIR="${CATALINA_HOME}/temp"
+
+RUN_CMD="exec -a \"${INSTANCE_NAME}\" java $LOGGING_CONFIG ${JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
+      -Djava.endorsed.dirs=${JAVA_ENDORSED_DIRS:-''} \
+      -classpath $CLASSPATH \
+      -Dcatalina.base=$CATALINA_BASE \
+      -Dcatalina.home=$CATALINA_HOME \
+      -Djava.io.tmpdir=$CATALINA_TMPDIR \
+      org.apache.catalina.startup.Bootstrap start";
+
+debug "tomcat/start/run Running: ${RUN_CMD}"
+
+su "${INSTANCE_USER}" bash -c "${RUN_CMD}"
+

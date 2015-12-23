@@ -1,0 +1,79 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Possible values are:
+#  0 - Disabled i.e. actively disable Crowd SSO
+#  1 - Enabled i.e. enable Crowd SSO
+# -1 - Ignore i.e. do nothing
+CROWD_SSO_ENABLE="${CROWD_SSO_ENABLE:--1}"
+
+FISHEYE_CONFIG_FILE=${FISHEYE_CONFIG_FILE:-"${HOME_DIR}/config.xml"}
+
+if [[ 1 -eq ${CROWD_SSO_ENABLE} ]]; then
+    if [ -z "${CROWD_APP_NAME}" \
+        -o -z "${CROWD_APP_PASSWORD}" \
+        -o -z "${CROWD_SERVER_URL}" ]; then
+        fatal "
+        CROWD_SSO_ENABLE is set, but one or all of the mandatory variables are not set in:
+        CROWD_APP_NAME
+        CROWD_APP_PASSWORD
+        CROWD_SERVER_URL
+
+        Note that you can also set:
+        CROWD_SESSIONS_ISAUTHENTICATED"
+        exit 51
+    fi
+
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
+load
+defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
+defvar config \$server_xml/config
+set \$config/security/crowd/#attribute/auto-add true
+set \$config/security/crowd/#attribute/refreshExistingUsers "true"
+set \$config/security/crowd/#attribute/resyncPeriod "1 hour"
+set \$config/security/crowd/#attribute/sso-enabled "true"
+set \$config/security/crowd/#attribute/jiraInstance "false"
+set \$config/security/crowd/crowd-properties/#text '#n#application.password=${CROWD_APP_PASSWORD} #n#application.name=${CROWD_APP_NAME} #n#crowd.server.url=${CROWD_SERVER_URL}#n#'
+
+save
+print /augeas//error
+
+EOF
+
+sed -i 's/#n#/\n/g' "${FISHEYE_CONFIG_FILE}"
+
+elif [[ 0 -eq ${CROWD_SSO_ENABLE} ]]; then
+    # TODO: Need to reset to default
+    debug "Crowd SSO disabled, disabling..."
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
+load
+defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
+defvar config \$server_xml/config
+rm \$config/security/crowd
+
+save
+print /augeas//error
+
+EOF
+else
+    debug "Crowd SSO - IGNORED"
+fi
+
+chmod 777 "${FISHEYE_CONFIG_FILE}"
+

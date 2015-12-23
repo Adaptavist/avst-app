@@ -1,0 +1,35 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+APP_SERVER="tomcat"
+# Realtive to INSTALL_DIR, but this isn't set yet
+TOMCAT_SUFFIX=""
+
+if [[ -f "${INSTANCE_DIR}/.version" ]]; then
+    # in case .version exists, so the app was installed already, determine version from .version file 
+    # and set STASH variable in case it is less then 4 as Atlassian renamed product to Bitbucket from that version
+    MAJOR_VER=`cat "${INSTANCE_DIR}/.version" | sed 's/\..*//'`
+    if [[ $MAJOR_VER -lt 4 ]]; then
+        WEBAPP_SUFFIX="atlassian-stash"
+        STASH="stash"
+    else
+        WEBAPP_SUFFIX="atlassian-bitbucket"
+    fi
+    log_set_variable WEBAPP_SUFFIX
+fi
+
+log_set_variable APP_SERVER
+log_set_variable TOMCAT_SUFFIX
+

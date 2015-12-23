@@ -1,0 +1,41 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+INIT_HOME="${INIT_HOME:-/etc}"
+OVERRIDE_FILE_NAME="${INIT_HOME}/init/${INSTANCE_NAME}.override"
+SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+SYSTEMD_SERVICE_FILE="${SYSTEMD_HOME}/${INSTANCE_NAME}.service"
+
+# if the system is using systemd, adjust the file limit in the service script
+if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
+    if [[  -f "${SYSTEMD_SERVICE_FILE}" ]]; then
+        if [[ $(grep "^LimitNOFILE" ${SYSTEMD_SERVICE_FILE}) ]]; then
+            sed -i "s/LimitNOFILE.*/LimitNOFILE=${SERVICE_MAX_OPEN_FILES}/" ${SYSTEMD_SERVICE_FILE}
+        else
+           sed -i "s/\[Service\]/&\nLimitNOFILE=${SERVICE_MAX_OPEN_FILES}/" ${SYSTEMD_SERVICE_FILE}
+        fi
+        RELOAD_SERVICE_RESULT=$( run_cmd systemctl daemon-reload )
+        debug "${RELOAD_SERVICE_RESULT}"
+    fi    
+
+# if systemd is not used create upstart override file
+else
+    if [[  -f "${OVERRIDE_FILE_NAME}" ]] && [[ $(grep "^limit nofile" ${OVERRIDE_FILE_NAME}) ]]; then
+        sed -i "s/limit nofile.*/limit nofile ${SERVICE_MAX_OPEN_FILES} ${SERVICE_MAX_OPEN_FILES}/" ${OVERRIDE_FILE_NAME}
+    else
+       echo "limit nofile ${SERVICE_MAX_OPEN_FILES} ${SERVICE_MAX_OPEN_FILES}" >> ${OVERRIDE_FILE_NAME}
+    fi
+    RELOAD_SERVICE_RESULT=$( run_cmd initctl reload-configuration )
+    debug "${RELOAD_SERVICE_RESULT}"
+fi

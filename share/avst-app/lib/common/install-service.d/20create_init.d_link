@@ -1,0 +1,40 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+INIT_HOME="${INIT_HOME:-/etc}"
+
+if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
+  debug "common/service_manager/create_init.d_link: no SysV init link needed, system uses systemd"
+else
+
+    if [[ -f "${INIT_HOME}/redhat-release" ]]; then
+        debug "Upstart files for RedHat"
+        [[ -L "${INIT_HOME}/init.d/${INSTANCE_NAME}" ]] && rm -f "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+        echo 'initctl $1 $( basename $0 )' > "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+        chmod 755 "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+    elif [[ -f "${INIT_HOME}/debian_version" ]]; then
+        debug "Upstart files for Debian"
+        (
+            cd "${INIT_HOME}/init.d/"
+            debug "common/service_manager/create_init.d_link: Linking '/lib/init/upstart-job' to '/etc/init.d/${INSTANCE_NAME}'"
+            LIB_HOME="${LIB_HOME:-/lib}"
+            ln -sf "${LIB_HOME}/init/upstart-job" ${INSTANCE_NAME}
+        )    
+    else
+        fatal "Unsupported OS"
+        exit 36
+    fi
+fi
+

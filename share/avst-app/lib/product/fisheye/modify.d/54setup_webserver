@@ -1,0 +1,79 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ -z "${HTTP_PORT:-}" ]]; then
+    fatal 'fisheye/modify/setup_webserver: HTTP_PORT not set'
+    return 24
+fi
+
+if [[ -z "${PROXY_PORT:-}" ]]; then
+    warn 'fisheye/modify/setup_webserver: PROXY_PORT not set - no proxy support will be setup'
+    NO_PROXY="true"
+fi
+
+if [[ -z "${SCHEME:-}" ]]; then
+    warn 'fisheye/modify/setup_webserver: SCHEME not set - no proxy support will be setup'
+    NO_PROXY="true"
+fi
+
+if [[ -z "${PROXY_NAME:-}" ]]; then
+    warn 'fisheye/modify/setup_webserver: PROXY_NAME not set - no proxy support will be setup'
+    NO_PROXY="true"
+fi
+
+if [[ -z "${CONTEXT_PATH:-}" ]]; then
+    CONTEXT_PATH=""
+    warn "fisheye/modify/setup_webserver: CONTEXT_PATH not set - setting to $CONTEXT_PATH"
+fi
+
+if [[ -z "${SITE_URL:-}" ]]; then
+    SITE_URL="${SCHEME}://${PROXY_NAME}:${PROXY_PORT}${CONTEXT_PATH}"
+    warn "fisheye/modify/setup_webserver: SITE_URL not set - setting to $SITE_URL"
+fi
+
+if [[ ! -z "${NO_PROXY:-}" ]]; then
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
+load
+defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
+defvar config \$server_xml/config
+set \$config/web-server/#attribute/site-url "${SITE_URL}"
+set \$config/web-server/http/#attribute/bind ":${HTTP_PORT}"
+set \$config/web-server/http/#attribute/context "${CONTEXT_PATH}"
+rm \$web/http/#attribute/proxy-port
+rm \$web/http/#attribute/proxy-scheme
+rm \$web/http/#attribute/proxy-host
+save
+print /augeas//error
+EOF
+else
+# Web server settings
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
+load
+defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
+defvar config \$server_xml/config
+set \$config/web-server/#attribute/site-url "${SITE_URL}"
+set \$config/web-server/http/#attribute/bind ":${HTTP_PORT}"
+set \$config/web-server/http/#attribute/context "${CONTEXT_PATH}"
+set \$config/web-server/http/#attribute/proxy-port "${PROXY_PORT}"
+set \$config/web-server/http/#attribute/proxy-scheme "${SCHEME}"
+set \$config/web-server/http/#attribute/proxy-host "${PROXY_NAME}"
+save
+print /augeas//error
+EOF
+fi

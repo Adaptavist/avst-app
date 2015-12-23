@@ -1,0 +1,100 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+INSTALLER="${PARAMS}"
+EXTENDED_INSTALL_VERSION="7.6.1"
+
+if [[ -z "${INSTALLER:-}" || ! -f "${INSTALLER}" ]]; then
+    fatal "coverity/install/execute_installer: installer \"${INSTALLER}\" does not exist"
+    exit 20
+fi
+
+# check if all required params are present
+if [[ -z "${ADMIN_PASSWORD:-}" ||
+      -z "${LICENSE_FILE_PATH:-}" ||
+      -z "${DB_HOST:-}" ||
+      -z "${DB_PORT:-}" ||
+      -z "${DB_DATABASE:-}" ||
+      -z "${DB_LOGIN:-}" ||
+      -z "${DB_PASSWORD:-}" ||
+      -z "${DB_INSTANCE:-}" ]];then
+      fatal "Parameters DB_INSTANCE, ADMIN_PASSWORD, LICENSE_FILE_PATH, DB_HOST, DB_PORT, DB_DATABASE, DB_LOGIN, DB_PASSWORD are required, make sure they are present in avst-app.cfg.sh"
+      exit 32
+fi
+debug "coverity/install/execute_installer: Executing quiet installer '${INSTALLER}' to install coverity to '${INSTANCE_DIR}/install'"
+
+# Function feeds in answers for command line installer of coverity
+# Consists of several parts:
+# 1) o - open installer
+# 2) Terms and conditions ack, requires enter like 30 times
+# 3) Db setup - in case db setup is Demo (3) it requires additional confirmation with 'n'
+# 4) Admin password setup and confirmation
+# 5) ports 
+
+
+install_answers() {
+    echo o
+    if [ ${VERSION_COMPARISON} -lt 2 ]; then
+        # indicate 'other' region
+        echo 5
+        LOOP_COUNT=35
+    else
+        LOOP_COUNT=30
+    fi
+    for (( i = 0; i < ${LOOP_COUNT}; i++ )); do
+        echo 
+    done
+    echo 1
+    if [ ${VERSION_COMPARISON}  -lt 2 ]; then
+        # indicate new installation, TODO add support for the other installation types
+        echo 1
+    fi
+    echo "${INSTANCE_DIR}/install"
+    echo "${LICENSE_FILE_PATH}"
+    echo 2
+    echo "${DB_HOST}"
+    echo "${DB_PORT}"
+    echo "${DB_DATABASE}"
+    echo "${DB_LOGIN}"
+    echo "${DB_PASSWORD}"
+    echo "${DB_INSTANCE}"
+    if [[ "${DB_INSTANCE}" == "3" ]]; then
+      echo "n"
+    fi
+    echo "${ADMIN_PASSWORD}"
+    echo "${ADMIN_PASSWORD}"
+    echo 
+    echo "${HTTP_PORT:-8080}"
+    echo n
+    echo "${COMMIT_PORT:-9090}"
+    echo "${CONTROLL_PORT:-8005}"
+    echo 
+    echo 
+}
+
+# work out if the version is before or after the first version that uses extended installation options (7.6.1)
+set +e
+vercomp ${VERSION} ${EXTENDED_INSTALL_VERSION}
+VERSION_COMPARISON=$?
+set -e
+
+# As quiet installer does not work well with external db, we are installing the application 
+# via their command line wizard. The install_answers provides step by step answers to different options 
+# required by wizard. 
+install_answers | su - "${INSTANCE_USER}" -c "${INSTALLER}" 
+
+# install will automatically start service, we do not want it as we will use our own start script
+su - "${INSTANCE_USER}" -c "${INSTANCE_DIR}/install/bin/cov-im-ctl stop"
+

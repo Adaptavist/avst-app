@@ -1,0 +1,61 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+FISHEYE_CONFIG_FILE="${HOME_DIR}/config.xml"
+if [[ ! -f "${FISHEYE_CONFIG_FILE}" ]]; then
+    cat <<EOF > "${FISHEYE_CONFIG_FILE}"
+<?xml version="1.0" encoding="UTF-8"?>
+<config control-bind="127.0.0.1:8059" version="1.0">
+    <web-server></web-server>
+    <security allow-anon="true" allow-cru-anon="true">
+    </security>
+    <repository-defaults>
+        <linker/>
+        <allow/>
+        <tarball enabled="false" maxFileCount="0"/>
+        <security allow-anon="true">
+        </security>
+    </repository-defaults>
+</config>
+EOF
+
+fi
+
+if [ -z "${DB_TYPE}" \
+    -o -z "${DB_DRIVER}" \
+    -o -z "${DB_JDBC_URL}" \
+    -o -z "${DB_USERNAME}" \
+    -o -z "${DB_PASSWORD}" ]; then
+    fatal "Please provide DB_TYPE, DB_USERNAME, DB_PASSWORD, DB_JDBC_URL, DB_DRIVER to setup database correctly"
+    return 51
+fi
+
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
+load
+defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
+defvar config \$server_xml/config
+set \$config/database/#attribute/type "${DB_TYPE}"
+set \$config/database/connection/#attribute/jdbcurl "${DB_JDBC_URL}"
+set \$config/database/connection/#attribute/driver "${DB_DRIVER}"
+set \$config/database/connection/#attribute/driverSource "bundled"
+set \$config/database/connection/#attribute/username "${DB_USERNAME}"
+set \$config/database/connection/#attribute/password "${DB_PASSWORD}"
+save
+print /augeas//error
+
+EOF
+

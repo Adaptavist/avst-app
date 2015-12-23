@@ -1,0 +1,30 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+JVM_MINIMUM_MEMORY="${JVM_MINIMUM_MEMORY:-332m}"
+JVM_MAXIMUM_MEMORY="${JVM_MAXIMUM_MEMORY:-2569m}"
+JVM_MAX_PERM_SIZE="${JVM_MAX_PERM_SIZE:-256m}"
+
+JAVA_CUSTOM_D_OPTIONS="${JAVA_CUSTOM_D_OPTIONS:--Dces.home=${INSTALL_DIR}} 
+-Ddir.log=${INSTALL_DIR}/logs
+-Djava.io.tmpdir=${INSTALL_DIR}/server/base/temp
+-Djava.awt.headless=true"
+JAVA_PERFORMANCE_OPTIONS="${JAVA_PERFORMANCE_OPTIONS:--verbose:gc -XX:+PrintGCTimeStamps -XX:+PrintGCDetails}"
+JAVA_ENDORSED_DIRS="${JAVA_ENDORSED_DIRS:-${INSTALL_DIR}/server/base/endorsed}"
+
+log_set_variable JVM_MAXIMUM_MEMORY
+log_set_variable JVM_MINIMUM_MEMORY
+log_set_variable JVM_MAX_PERM_SIZE
+

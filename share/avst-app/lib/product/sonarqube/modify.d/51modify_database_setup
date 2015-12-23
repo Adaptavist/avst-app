@@ -1,0 +1,84 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ # validate that the manditory variables are present
+if [[ -z "${DB_TYPE:-}" ||
+    -z "${DB_JDBC_URL:-}" ||
+    -z "${DB_USERNAME:-}" ||
+    -z "${DB_PASSWORD:-}" ]]; then
+    fatal 'You have to provide database connection properties: DB_TYPE, DB_JDBC_URL, DB_USERNAME and DB_PASSWORD'
+    exit 21
+fi
+
+# check for optional variables and default them if they are not set
+if [[ -z "${DB_MAX_POOL_SIZE:-}" ]]; then
+    DB_MAX_POOL_SIZE="20"
+    warn "sonarqube/modify/modify_database_setup: DB_MAX_POOL_SIZE not set - setting to $DB_MAX_POOL_SIZE"
+fi
+
+if [[ -z "${DB_MAX_POOL_IDLE:-}" ]]; then
+    DB_MAX_POOL_IDLE="5"
+    warn "sonarqube/modify/modify_database_setup: DB_MAX_POOL_IDLE not set - setting to $DB_MAX_POOL_IDLE"
+fi
+
+if [[ -z "${DB_MIN_POOL_IDLE:-}" ]]; then
+    DB_MIN_POOL_IDLE="2"
+    warn "sonarqube/modify/modify_database_setup: DB_MIN_POOL_IDLE not set - setting to $DB_MIN_POOL_IDLE"
+fi
+
+if [[ -z "${DB_MAX_POOL_WAIT:-}" ]]; then
+    DB_MAX_POOL_WAIT="5000"
+    warn "sonarqube/modify/modify_database_setup: DB_MAX_POOL_WAIT not set - setting to $DB_MAX_POOL_WAIT"
+fi
+
+if [[ -z "${DB_MIN_EVICTION_IDLE:-}" ]]; then
+    DB_MIN_EVICTION_IDLE="600000"
+    warn "sonarqube/modify/modify_database_setup: DB_MIN_EVICTION_IDLE not set - setting to $DB_MIN_EVICTION_IDLE"
+fi
+
+if [[ -z "${DB_TIME_BETWEEN_EVICTIONS:-}" ]]; then
+    DB_TIME_BETWEEN_EVICTIONS="30000"
+    warn "sonarqube/modify/modify_database_setup: DB_TIME_BETWEEN_EVICTIONS not set - setting to $DB_TIME_BETWEEN_EVICTIONS"
+fi
+
+# configure the DB setup in sonar.properties
+DB_CONFIG_FILE="${INSTALL_DIR}/conf/sonar.properties"
+
+debug "sonarqube/modify/modify_database_setup: Setting Database Configuration in ${DB_CONFIG_FILE}"
+
+#  get around the fact that the config file has dos characters in it which cause augtool problems
+dos2unix $DB_CONFIG_FILE
+
+# modify the configration file
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/IniFile/lens "simplevars.lns"
+set /augeas/load/IniFile/incl "${DB_CONFIG_FILE}"
+load
+defvar config_file "/files/${DB_CONFIG_FILE}"
+set \$config_file/sonar.jdbc.url "${DB_JDBC_URL}"
+set \$config_file/sonar.jdbc.username "${DB_USERNAME}"
+set \$config_file/sonar.jdbc.password "${DB_PASSWORD}"
+set \$config_file/sonar.jdbc.maxActive "${DB_MAX_POOL_SIZE}"
+set \$config_file/sonar.jdbc.maxIdle "${DB_MAX_POOL_IDLE}"
+set \$config_file/sonar.jdbc.minIdle "${DB_MIN_POOL_IDLE}"
+set \$config_file/sonar.jdbc.maxWait "${DB_MAX_POOL_WAIT}"
+set \$config_file/sonar.jdbc.minEvictableIdleTimeMillis "${DB_MIN_EVICTION_IDLE}"
+set \$config_file/sonar.jdbc.timeBetweenEvictionRunsMillis "${DB_TIME_BETWEEN_EVICTIONS}"
+save
+print /augeas//error
+EOF
+
+chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${DB_CONFIG_FILE}"
+

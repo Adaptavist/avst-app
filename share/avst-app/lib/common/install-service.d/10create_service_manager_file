@@ -1,0 +1,41 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+INIT_HOME="${INIT_HOME:-/etc}"
+SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+SYSTEMD_FILE='systemd.service'
+if [[ -f "${INIT_HOME}/redhat-release" ]]; then
+    UPSTART_FILE='upstart-redhat.conf'
+elif [[ -f "${INIT_HOME}/debian_version" ]]; then
+    UPSTART_FILE='upstart-debian.conf'
+else
+    fatal "Unsupported OS, contact support team"
+    exit 36
+fi
+
+
+(
+    if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]
+    then
+        cd "${SYSTEMD_HOME}"
+        debug "common/service_manager/create_systemd_file: Creating systemd config file '${SYSTEMD_HOME}/${INSTANCE_NAME}.service'"
+        cat "${SHARE_DIR}/systemd/${SYSTEMD_FILE}" | sed "s/<INSTANCE>/${INSTANCE_NAME}/g" | sed "s#<MAX_OPEN_FILES>#${SERVICE_MAX_OPEN_FILES}#g" > "${INSTANCE_NAME}.service"
+    else
+        cd "${INIT_HOME}/init"
+        debug "common/service_manager/create_upstart_link: Linking '${SHARE_DIR}/upstart/upstart.conf' to '/etc/init/${INSTANCE_NAME}.conf'"
+        ln -sf "${SHARE_DIR}/upstart/${UPSTART_FILE}" "${INSTANCE_NAME}.conf"
+    fi
+)
+

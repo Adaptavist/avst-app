@@ -1,0 +1,111 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default values for separate settings
+DEF_JVM_MAXIMUM_MEMORY="1024m"
+DEF_JVM_MINIMUM_MEMORY="512m"
+DEF_JVM_MAX_PERM_SIZE="256m"
+
+JAVA_VERSION=$( run_cmd java -version 2>&1 )
+if [[ "${JAVA_VERSION}" == *"1.6"* ]]; then
+      DEF_GC_LOG_FILE="${TOMCAT_DIR}/logs/gc-$( date '+%Y%m%d-%T' ).log"
+else
+      DEF_GC_LOG_FILE="${TOMCAT_DIR}/logs/gc-%p-%t.log"
+fi
+
+DEF_HEAP_DUMP_PATH="${TOMCAT_DIR}/logs/"
+
+# Force restart on out-of-memory condition by killing the application.
+# Note that %p will be replaced by the pid of the jvm
+DEF_OUT_OF_MEMORY_ERROR_CMD="'kill -TERM %p;sleep 120; kill -KILL %p'"
+
+# Define default values for categories can be overwriten e.g. in atlass
+DEF_JAVA_BEHAVIORAL_OPTIONS="${DEF_JAVA_BEHAVIORAL_OPTIONS:-}"
+DEF_JAVA_GC1_OPTIONS="${DEF_JAVA_GC1_OPTIONS:-}"
+DEF_JAVA_PERFORMANCE_OPTIONS="${DEF_JAVA_PERFORMANCE_OPTIONS:-}"
+DEF_JAVA_DEBUGING_OPTIONS="${DEF_JAVA_DEBUGING_OPTIONS:-}"
+DEF_JAVA_CUSTOM_D_OPTIONS="${DEF_JAVA_CUSTOM_D_OPTIONS:-}"
+DEF_JAVA_APP_SPECIFIC_OPTIONS="${DEF_JAVA_APP_SPECIFIC_OPTIONS:-}"
+
+# Prepare defaults for JAVA_OPTS
+# Categories according to http://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html
+# Separated usually changed options
+debug "tomcat/java_defaults: You can specify java options in various categories:"
+debug "tomcat/java_defaults: Separatelly are applied usually changed options or can be provided within category"
+debug "tomcat/java_defaults: Please do not duplicate them."
+debug "tomcat/java_defaults: Separated options:"
+debug "tomcat/java_defaults: JVM_MAX_PERM_SIZE defaults to ${DEF_JVM_MAX_PERM_SIZE}"
+debug "tomcat/java_defaults: JVM_MINIMUM_MEMORY defaults to ${DEF_JVM_MINIMUM_MEMORY}"
+debug "tomcat/java_defaults: JVM_MAXIMUM_MEMORY defaults to ${DEF_JVM_MAXIMUM_MEMORY}"
+debug "tomcat/java_defaults: GC_LOG_FILE defaults to ${DEF_GC_LOG_FILE}"
+debug "tomcat/java_defaults: HEAP_DUMP_PATH defaults to ${DEF_HEAP_DUMP_PATH}"
+debug "tomcat/java_defaults: OUT_OF_MEMORY_ERROR_CMD defaults to ${DEF_OUT_OF_MEMORY_ERROR_CMD}"
+
+debug "tomcat/java_defaults: "
+debug "tomcat/java_defaults: Categories:"
+debug "tomcat/java_defaults: JAVA_BEHAVIORAL_OPTIONS defaults to: ${DEF_JAVA_BEHAVIORAL_OPTIONS}"
+debug "tomcat/java_defaults: JAVA_GC1_OPTIONS defaults to: ${DEF_JAVA_GC1_OPTIONS}"
+debug "tomcat/java_defaults: JAVA_PERFORMANCE_OPTIONS defaults to: ${DEF_JAVA_PERFORMANCE_OPTIONS}"
+debug "tomcat/java_defaults: JAVA_DEBUGING_OPTIONS defaults to: ${DEF_JAVA_DEBUGING_OPTIONS}"
+debug "tomcat/java_defaults: JAVA_APP_SPECIFIC_OPTIONS defaults to: ${DEF_JAVA_APP_SPECIFIC_OPTIONS}"
+debug "tomcat/java_defaults: JAVA_CUSTOM_D_OPTIONS defaults to: ${DEF_JAVA_CUSTOM_D_OPTIONS}"
+debug "tomcat/java_defaults: "
+debug "tomcat/java_defaults: Look at http://www.oracle.com/technetwork/java/javase/tech/vmoptions-jsp-140102.html for more details"
+
+# Separate setup:
+# Perm Gen size needs to be increased if encountering OutOfMemoryError: PermGen problems. Specifying PermGen size is not valid on IBM JDKs
+if [[ "${JAVA_VERSION}" == *"1.6"* || "${JAVA_VERSION}" == *"1.7"* ]]; then
+      SEP_JVM_MAX_PERM_SIZE="-XX:MaxPermSize=${JVM_MAX_PERM_SIZE:-${DEF_JVM_MAX_PERM_SIZE}}"
+fi
+SEP_JVM_MINIMUM_MEMORY="-Xms${JVM_MINIMUM_MEMORY:-${DEF_JVM_MINIMUM_MEMORY}}" 
+SEP_JVM_MAXIMUM_MEMORY="-Xmx${JVM_MAXIMUM_MEMORY:-${DEF_JVM_MAXIMUM_MEMORY}}"
+SEP_GC_LOG_FILE="-Xloggc:${GC_LOG_FILE:-${DEF_GC_LOG_FILE}}"
+SEP_HEAP_DUMP_PATH="-XX:HeapDumpPath=${HEAP_DUMP_PATH:-${DEF_HEAP_DUMP_PATH}}"
+SEP_OUT_OF_MEMORY_ERROR_CMD="-XX:OnOutOfMemoryError=${OUT_OF_MEMORY_ERROR_CMD:-${DEF_OUT_OF_MEMORY_ERROR_CMD}}"
+# Behavioral Options
+JAVA_BEHAVIORAL_OPTIONS="${JAVA_BEHAVIORAL_OPTIONS:-${DEF_JAVA_BEHAVIORAL_OPTIONS}}"
+# Garbage First (G1) Garbage Collection Options
+JAVA_GC1_OPTIONS="${JAVA_GC1_OPTIONS:-${DEF_JAVA_GC1_OPTIONS}}"
+# Performance Options
+JAVA_PERFORMANCE_OPTIONS="${JAVA_PERFORMANCE_OPTIONS:-${DEF_JAVA_PERFORMANCE_OPTIONS}}"
+# Debugging Options
+JAVA_DEBUGING_OPTIONS="${JAVA_DEBUGING_OPTIONS:-${DEF_JAVA_DEBUGING_OPTIONS}}"
+# App specific settings
+JAVA_APP_SPECIFIC_OPTIONS="${JAVA_APP_SPECIFIC_OPTIONS:-}"
+# Custom options available with -D
+JAVA_CUSTOM_D_OPTIONS="${JAVA_CUSTOM_D_OPTIONS:-${DEF_JAVA_CUSTOM_D_OPTIONS}}"
+
+# Prepare JAVA_OPTS, partial variables and defaults are defined in common/startup.d
+JAVA_OPTS="${JAVA_OPTS:-} \
+            ${SEP_JVM_MINIMUM_MEMORY} \
+            ${SEP_JVM_MAXIMUM_MEMORY} \
+            ${SEP_JVM_MAX_PERM_SIZE:-} \
+            ${SEP_GC_LOG_FILE} \
+            ${SEP_HEAP_DUMP_PATH} \
+            ${SEP_OUT_OF_MEMORY_ERROR_CMD} \
+            ${JAVA_BEHAVIORAL_OPTIONS:-} \
+            ${JAVA_GC1_OPTIONS:-} \
+            ${JAVA_PERFORMANCE_OPTIONS:-} \
+            ${JAVA_DEBUGING_OPTIONS:-} \
+            ${JAVA_APP_SPECIFIC_OPTIONS:-} \
+            ${HOME_DIR_PROPERTY:-} \
+            ${JAVA_CUSTOM_D_OPTIONS}"
+
+JAVA_OPTS=$( echo $JAVA_OPTS | sed -e's/  */ /g' )
+
+debug "tomcat/java_defaults: Using: JAVA_OPTS: ${JAVA_OPTS}"
+
+export JAVA_OPTS
+

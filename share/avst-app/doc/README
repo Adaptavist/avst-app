@@ -1,0 +1,24 @@
+Adaptavist Application Manager
+
+SHARE_DIR defaults to /usr/share/avst-app
+  This is where the shell scripts for installing and managing the Atlassian Applications
+  are placed during installation of the avst-app packages
+
+BASE_DIR defaults to /opt
+  This is where the Atlassian Applications will be installed
+
+
+SHARE_DIR contains:
+  bin/ - To be added to your PATH to allow for easy running of scripts
+  doc/ - Documentation (contains this file and any others in this directory)
+  lib/ - Scripts which are either of the form:
+    <cmd>.sh - Simple single file shell script
+    <cmd>.d  - Directory of scripts which are run in natural sort order
+
+BASE_DIR contains application instances which are by default assumed to be named as:
+  <customer shortcode>_<service name>_<environment> - also known as the INSTANCE_DIR
+
+An INSTANCE_DIR contains:
+  install/ - Vendor supplied application directory (aka INSTALL_DIR)
+  home/    - Data directory (persistent and aka HOME_DIR)
+  avst-app.cfg.sh - Application configuration for the scripts in SHARE_DIR above

@@ -1,0 +1,45 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+JVM_MINIMUM_MEMORY="${JVM_MINIMUM_MEMORY:-256m}"
+JVM_MAXIMUM_MEMORY="${JVM_MAXIMUM_MEMORY:-512m}"
+JVM_MAX_PERM_SIZE="${JVM_MAX_PERM_SIZE:-256m}"
+
+JAVA_ENDORSED_DIRS="${INSTALL_DIR}/endorsed"
+
+if [[ -z "${STASH:-}" ]]; then
+    ATLASSIAN_STANDALONE="BITBUCKET"
+else
+    ATLASSIAN_STANDALONE="STASH"
+fi
+
+JAVA_CUSTOM_D_OPTIONS="${JAVA_CUSTOM_D_OPTIONS:--Datlassian.standalone=${ATLASSIAN_STANDALONE} \
+-Dorg.apache.jasper.runtime.BodyContentImpl.LIMIT_BUFFER=true \
+-Dmail.mime.decodeparameters=true \
+-Dorg.apache.catalina.connector.Response.ENFORCE_ENCODING_IN_GET_WRITER=false \
+-Djava.awt.headless=true \
+-Dfile.encoding=UTF-8 \
+-Djava.library.path=${INSTALL_DIR}/lib/native:${HOME_DIR}/lib/native}"
+
+DEF_JAVA_BEHAVIORAL_OPTIONS=""
+DEF_JAVA_GC1_OPTIONS=""
+DEF_JAVA_PERFORMANCE_OPTIONS=""
+DEF_JAVA_DEBUGING_OPTIONS=""
+
+log_set_variable JVM_MAXIMUM_MEMORY
+log_set_variable JVM_MINIMUM_MEMORY
+log_set_variable JVM_MAX_PERM_SIZE
+log_set_variable JAVA_CUSTOM_D_OPTIONS
+

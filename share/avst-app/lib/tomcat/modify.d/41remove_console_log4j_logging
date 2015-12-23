@@ -1,0 +1,25 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ ! -z "${REMOVE_LOG4J_CONSOLE_LOGGING:-}" ]]; then
+    LOG4J_PROPERTIES_FILE="${WEBAPP_DIR}/WEB-INF/classes/log4j.properties"
+    if [[ -f  "${LOG4J_PROPERTIES_FILE}" ]]; then
+        sed -i 's/, console,/,/g' "${LOG4J_PROPERTIES_FILE}"
+        info "Removed console output from log4j properties file."
+    else
+        warn "Trying to remove log4j console output, file does not exist: ${WEBAPP_DIR}/WEB-INF/classes/log4j.properties"
+    fi
+fi
+

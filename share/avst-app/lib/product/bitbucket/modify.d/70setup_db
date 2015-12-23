@@ -1,0 +1,59 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ ! -z "${DB_SETUP_DB:-}" ]]; then
+  if [[ -z "${STASH:-}" ]]; then
+    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket-config.properties"
+  else
+    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/stash-config.properties"
+  fi
+  # only attempt to run the modification if BITBUCKET_PROPERTIES_FILE file exists and there are already DB values in it
+  if [[ -r "${BITBUCKET_PROPERTIES_FILE}" && $(grep jdbc.url ${BITBUCKET_PROPERTIES_FILE}) ]]; then
+
+    # Test if required parameters are present
+    if [ -z "${DB_JDBC_URL:-}" -o \
+     -z "${DB_DRIVER:-}" -o \
+     -z "${DB_USERNAME:-}" -o \
+     -z "${DB_PASSWORD:-}" ]; then
+      cat <<EOF
+One of the mandatory variables to set the DB up is missing, these are:
+DB_JDBC_URL
+DB_DRIVER
+DB_USERNAME
+DB_PASSWORD
+EOF
+      exit 12
+    fi
+
+    # modify the BITBUCKET_PROPERTIES_FILE with the DB settings
+    AUGFILE="
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
+load
+defvar prop /files${BITBUCKET_PROPERTIES_FILE}
+set  \$prop/jdbc.driver \"${DB_DRIVER}\"
+set  \$prop/jdbc.url \"${DB_JDBC_URL}\"
+set  \$prop/jdbc.user \"${DB_USERNAME}\"
+set  \$prop/jdbc.password \"${DB_PASSWORD}\"
+"
+    augtool -LA -e <<EOF
+${AUGFILE}
+save
+print /augeas//error
+EOF
+  else
+    debug "File ${BITBUCKET_PROPERTIES_FILE} does not yet exist or DB values are not yet set, therefore DB setting modification will be skipped"
+  fi
+fi

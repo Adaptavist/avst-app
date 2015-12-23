@@ -1,0 +1,68 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Automatically detect version from 
+if [[ -z "${VERSION:-}" ]]; then
+    PRODUCT_TO_CHECK="${PRODUCT}"
+    case ${PRODUCT} in
+        'confluence')
+            FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/confluence-*.jar | head -1)
+            ;;
+        'jira')
+            FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/jira-api-*.jar)
+            ;;
+        'bamboo')
+            FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/atlassian-bamboo-api-*.jar)
+            ;;
+        'bitbucket')
+            # Detect if the product is stash (version will be lower then 4.0.0) or bitbucket
+            DETECT_PRODUCT=$( run_cmd ls ${WEBAPP_DIR}/WEB-INF/lib/stash-api-*.jar )
+            if [[ "$(get_std_return ${DETECT_PRODUCT})" == "0" ]]; then
+                FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/stash-api-*.jar)
+                PRODUCT_TO_CHECK="stash"
+            else
+                FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/bitbucket-api-*.jar)
+            fi
+            ;;
+        'crowd')
+            FILE_VERION_PATTERN=$(ls ${WEBAPP_DIR}/WEB-INF/lib/crowd-api-*.jar)
+            ;;
+        'fisheye')
+            # Need to parse it from README.html, can not find it elsewhere
+            # Parse html file and get <title>FishEye <version></title>
+            FOUND_VERSION=$(grep "<title>" ${INSTALL_DIR}/README.html | sed 's/.*<title>FishEye //' | sed 's:<\/title>::')
+            echo "${FOUND_VERSION}" > "${INSTANCE_DIR}/.version"
+            return 0
+            ;;
+        *)
+            warn "prepare/autodetect_version: Unsupported application. Please provide version manually. Adjust ${INSTANCE_DIR}/.version"
+            return 0
+            ;;
+    esac
+    if [[ 1 -eq ${EARLY_ACCESS:-0} ]]; then
+        VERSION=$(echo ${FILE_VERION_PATTERN//*${PRODUCT_TO_CHECK=}-} | cut -d - -f 1)
+    else
+        VERSION=$(echo ${FILE_VERION_PATTERN} | sed 's/.*-//' | sed s/.jar// )
+    fi  
+fi
+
+# validate user input
+VERSION_CHECKED=$(echo ${VERSION} | sed -r '/^[0-9]+\.[0-9]+[.0-9]*.*$/d')
+if [[ ! -z "${VERSION_CHECKED}" ]] ; then
+    fatal "Can not determine new version or it is not in the right format, please use XX.XX.XX format (ie: 4.15.3). Found: ${VERSION}"
+    exit 23
+fi
+update_version "${VERSION}"
+

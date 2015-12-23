@@ -1,0 +1,23 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ -f "${INSTANCE_DIR}/bamboo-capabilities.properties" ]]; then
+	CP_CAPABILITIES=$( run_cmd cp "${INSTANCE_DIR}/bamboo-capabilities.properties" "${HOME_DIR}/bin/bamboo-capabilities.properties" )
+	debug "modify/set_capabilities: cp returned: ${CP_CAPABILITIES}"
+	if [[ "$(get_std_return ${CP_CAPABILITIES})" != "0" ]]; then
+		warn "modify/set_capabilities: Error when copying bamboo-capabilities.properties file: $(get_std_out ${CP_CAPABILITIES})"
+	fi
+fi
+

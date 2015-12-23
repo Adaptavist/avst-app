@@ -1,0 +1,57 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+INIT_HOME="${INIT_HOME:-/etc}"
+OVERRIDE_FILE_NAME="${INIT_HOME}/init/${INSTANCE_NAME}.override"
+SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+
+# if the system is using systemd, enable or disable the service
+if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
+    if [[ -f ${SYSTEMD_HOME}/${INSTANCE_NAME}.service ]]
+    then
+
+        # MANUAL_UPSTART renamed to MANUAL_SERVICE, left both for backwards compatibility
+        if [[ "${MANUAL_UPSTART:-}" == "1" || "${MANUAL_SERVICE:-}" == "1" ]]
+        then
+            if [[ "${MANUAL_UPSTART:-}" == "1" ]]; then
+                warn "Using MANUAL_UPSTART is deprecated, please use MANUAL_SERVICE instead."
+            fi
+            RELOAD_CONFIG_RESULT=$( run_cmd systemctl disable ${INSTANCE_NAME} )
+        else
+            RELOAD_CONFIG_RESULT=$( run_cmd systemctl enable ${INSTANCE_NAME} )
+        fi
+        debug $RELOAD_CONFIG_RESULT
+    fi
+# if systemd is not used create or edit upstart override file
+else
+    # if a RHEL based system use a second start on stanza as "manual" is not valid
+    if [[ -f /etc/redhat-release ]]; then
+        START_DIRECTIVE="start on never"
+    else
+        START_DIRECTIVE="manual"
+    fi
+    # MANUAL_UPSTART renamed to MANUAL_SERVICE, left both for backwards compatibility
+    if [[ "${MANUAL_UPSTART:-}" == "1" || "${MANUAL_SERVICE:-}" == "1" ]]; then
+        if [[ "${MANUAL_UPSTART:-}" == "1" ]]; then
+            warn "Using MANUAL_UPSTART is deprecated, please use MANUAL_SERVICE instead."
+        fi
+        if [[ ! $(grep "^${START_DIRECTIVE}" ${OVERRIDE_FILE_NAME}) ]]; then
+            echo ${START_DIRECTIVE} >> "${OVERRIDE_FILE_NAME}"
+        fi
+    else
+        if [[ -f "${OVERRIDE_FILE_NAME}" ]] && [[ $(grep "^${START_DIRECTIVE}" ${OVERRIDE_FILE_NAME}) ]]; then
+            sed -i "/${START_DIRECTIVE}/d" ${OVERRIDE_FILE_NAME}
+        fi
+    fi
+fi

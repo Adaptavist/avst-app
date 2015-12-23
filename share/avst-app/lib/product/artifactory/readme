@@ -1,0 +1,23 @@
+#Minimum required setup for artifactory
+# Create folder /opt/<instance_name>
+# create config file avst-app.cfg.sh in that folder
+# with content like:
+# 
+# PRODUCT=artifactory
+# INSTANCE_NAME=<instance_name>
+# LICENSE='paste_license_here'
+# 
+# DB_TYPE=mysql
+# DB_DRIVER=‘com.mysql.jdbc.Driver’
+# DB_URL=“jdbc:mysql://localhost:3306/artdb?characterEncoding=UTF-8&elideSetAutoCommits=true”
+# DB_USER=artifactory
+# DB_PASS=artifactory
+# PROVIDER_FILESYSTEM_DIR=/data/artifactory/filestore
+#
+# DRIVERS_COUNT=2
+# DRIVER_PATH=<path to mysql driver nr 1>
+# DRIVER_PATH_1=<path to mysql driver nr 2>
+# 
+# INSTANCE_GROUP=artifactory
+# INSTANCE_USER=artifactory
+#

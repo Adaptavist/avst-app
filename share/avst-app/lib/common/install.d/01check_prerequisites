@@ -1,0 +1,53 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+_FAIL=0
+
+# Check our user is "effectively" root
+if [[ $EUID -ne 0 ]]; then
+  _FAIL=1
+  fatal "This must be run as root"
+fi
+
+# Check our application user exists
+INSTANCE_USER="${INSTANCE_USER:-hosting}"
+ret=false
+getent passwd "${INSTANCE_USER}" >/dev/null 2>&1 && ret=true
+if [[ ${ret} != true ]]; then
+  _FAIL=1
+  fatal "common/install/check_prerequisites: User $INSTANCE_USER does not exist, please create"
+fi
+
+# Check our application user exists
+INSTANCE_GROUP="${INSTANCE_GROUP:-hosting}"
+ret=false
+getent group "${INSTANCE_GROUP}" >/dev/null 2>&1 && ret=true
+if [[ ${ret} != true ]]; then
+  _FAIL=1
+  fatal "common/install/check_prerequisites: Group $INSTANCE_GROUP does not exist, please create"
+fi
+
+# Check the INSTANCE_DIR exists
+if [[ ! -d "${INSTANCE_DIR}" ]]; then
+  _FAIL=1
+  fatal "common/install/check_prerequisites: INSTANCE_DIR: \"${INSTANCE_DIR}\" does not exist"
+fi
+
+# If we fail on any of the prerequisities, exit
+if [[ ${_FAIL} -ne 0 ]]; then
+  fatal "common/install/check_prerequisites: Terminating due to failed prerequisities"
+  exit 10
+fi
+

@@ -1,0 +1,51 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# check for optional variables and default them if they are not set
+if [[ -z "${SONARQUBE_BIND_PORT:-}" ]]; then
+    SONARQUBE_BIND_PORT="9000"
+    warn "sonarqube/modify/modify_config: SONARQUBE_BIND_PORT not set - setting to $SONARQUBE_BIND_PORT"
+fi
+
+if [[ -z "${SONARQUBE_BIND_ADDRESS:-}" ]]; then
+    SONARQUBE_BIND_ADDRESS="0.0.0.0"
+    warn "sonarqube/modify/modify_config: SONARQUBE_BIND_ADDRESS not set - setting to $SONARQUBE_BIND_ADDRESS"
+fi
+
+if [[ -z "${SONARQUBE_NOTIFICATION_DELAY:-}" ]]; then
+    SONARQUBE_NOTIFICATION_DELAY="60"
+    warn "sonarqube/modify/modify_config: SONARQUBE_NOTIFICATION_DELAY not set - setting to $SONARQUBE_NOTIFICATION_DELAY"
+fi
+
+# configure the DB setup in sonar.properties
+CONFIG_FILE="${INSTALL_DIR}/conf/sonar.properties"
+
+debug "sonarqube/modify/modify_database_setup: Setting Database Configuration in ${CONFIG_FILE}"
+
+# modify the configration file
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/IniFile/lens "simplevars.lns"
+set /augeas/load/IniFile/incl "${CONFIG_FILE}"
+load
+defvar config_file "/files/${CONFIG_FILE}"
+set \$config_file/sonar.web.port "${SONARQUBE_BIND_PORT}"
+set \$config_file/sonar.web.host "${SONARQUBE_BIND_ADDRESS}"
+set \$config_file/sonar.notifications.delay "${SONARQUBE_NOTIFICATION_DELAY}"
+save
+print /augeas//error
+EOF
+
+chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${CONFIG_FILE}"
+

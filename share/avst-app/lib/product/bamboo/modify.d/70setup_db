@@ -1,0 +1,77 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ ! -z "${DB_SETUP_DB:-}" ]]; then
+  BAMBOO_XML_FILE="${HOME_DIR}/bamboo.cfg.xml"
+  # only attempt to run the modification if BAMBOO_XML_FILE file exists and there are already DB values in it
+  if [[ -r "${BAMBOO_XML_FILE}" && $(grep hibernate.connection.url ${BAMBOO_XML_FILE}) ]]; then
+
+    # Test if required parameters are present
+    if [ -z "${DB_JDBC_URL:-}" -o \
+     -z "${DB_DRIVER:-}" -o \
+     -z "${DB_USERNAME:-}" -o \
+     -z "${DB_PASSWORD:-}" -o \
+     -z "${DB_DIALECT:-}" ]; then
+      cat <<EOF
+One of the mandatory variables to set the DB up is missing, these are:
+DB_JDBC_URL
+DB_DRIVER
+DB_USERNAME
+DB_PASSWORD
+DB_DIALECT
+
+Note: you can also specify additional options with default values:
+  DB_C3P0_ACQUIRE_INCREMENT = 1
+  DB_C3P0_IDLE_TEST_PERIOD = 100
+  DB_C3P0_MAX_SIZE = 15
+  DB_C3P0_MAX_STATEMENTS = 0
+  DB_C3P0_MIN_SIZE = 0
+  DB_C3P0_TIMEOUT = 30
+  DB_HIBERNATE_SETUP = true
+EOF
+      exit 12
+    fi
+    
+    # modify the BAMBOO_XML_FILE with the DB settings
+    AUGFILE="
+set /augeas/load/xml/lens 'Xml.lns'
+set /augeas/load/xml/incl ${BAMBOO_XML_FILE}
+load
+defvar bamboo_xml /files${BAMBOO_XML_FILE}
+defvar application_configuration \$bamboo_xml/application-configuration
+defvar properties \$application_configuration/properties
+set \$properties/property[#attribute/name='hibernate.c3p0.acquire_increment']/#text \"${DB_C3P0_ACQUIRE_INCREMENT:-1}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.idle_test_period']/#text \"${DB_C3P0_IDLE_TEST_PERIOD:-100}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.max_size']/#text \"${DB_C3P0_MAX_SIZE:-15}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.max_statements']/#text \"${DB_C3P0_MAX_STATEMENTS:-0}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.min_size']/#text \"${DB_C3P0_MIN_SIZE:-0}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.timeout']/#text \"${DB_C3P0_TIMEOUT:-30}\"
+set \$properties/property[#attribute/name='hibernate.setup']/#text \"${DB_HIBERNATE_SETUP:-true}\"
+set \$properties/property[#attribute/name='hibernate.connection.url']/#text \"${DB_JDBC_URL}\"
+set \$properties/property[#attribute/name='hibernate.connection.driver_class']/#text \"${DB_DRIVER}\"
+set \$properties/property[#attribute/name='hibernate.connection.username']/#text \"${DB_USERNAME}\"
+set \$properties/property[#attribute/name='hibernate.connection.password']/#text \"${DB_PASSWORD}\"
+set \$properties/property[#attribute/name='hibernate.dialect']/#text ${DB_DIALECT}
+"
+    augtool -LA -e <<EOF
+${AUGFILE}
+save
+print /augeas//error
+
+EOF
+  else
+    debug "File ${BAMBOO_XML_FILE} does not yet exist, does not yet exist or DB values are not yet set, therefore DB setting modification will be skipped"
+  fi
+fi

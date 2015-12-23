@@ -1,0 +1,206 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Possible values are:
+#  0 - Disabled i.e. actively disable Crowd SSO
+#  1 - Enabled i.e. enable Crowd SSO
+# -1 - Ignore i.e. do nothing
+CROWD_SSO_ENABLE="${CROWD_SSO_ENABLE:--1}"
+
+CROWD_PROP_FILE=${CROWD_PROP_FILE:-"${WEBAPP_DIR}/WEB-INF/classes/crowd.properties"}
+SERAPH_CONFIG_FILE=${SERAPH_CONFIG_FILE:-"${WEBAPP_DIR}/WEB-INF/classes/seraph-config.xml"}
+
+# TODO: Support more apps e.g. Stash, FeCru, etc.
+if [[ 1 -eq ${CROWD_SSO_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'confluence')
+            CROWD_SSO_AUTHENTICATOR=${CROWD_SSO_AUTHENTICATOR:-"com.atlassian.confluence.user.ConfluenceCrowdSSOAuthenticator"}
+            ;;
+        'jira')
+            CROWD_SSO_AUTHENTICATOR=${CROWD_SSO_AUTHENTICATOR:-"com.atlassian.jira.security.login.SSOSeraphAuthenticator"}
+            ;;
+        'bamboo')
+            # !!! this MUST run after bamboo is started for the first time, files are created by wizard
+            #  in case this is applied completing wizard admin user will not be created
+            CROWD_SSO_AUTHENTICATOR=${CROWD_SSO_AUTHENTICATOR:-"com.atlassian.crowd.integration.seraph.v25.BambooAuthenticator"}
+            CROWD_PROP_FILE="${HOME_DIR}/xml-data/configuration/crowd.properties"
+            if [[ ! -f "${CROWD_PROP_FILE}" ]]; then
+                fatal "Bamboo config file does not exist: ${HOME_DIR}/xml-data/configuration/crowd.properties \
+                You are probably running with CROWD_SSO_ENABLE=1 and wizard is not completed, \
+                make sure you set property to -1 and complete wizard first. Then rerun modify with CROWD_SSO_ENABLE=1"
+                return 23
+            fi
+            ;;
+        'stash')
+            STASH_CONFIG_FILE="${HOME_DIR}/stash-config.properties"
+            if [[ ! -f "${STASH_CONFIG_FILE}" ]]; then
+                fatal "Stash config file does not exist: ${HOME_DIR}/stash-config.properties \
+                You are probably running with CROWD_SSO_ENABLE=1 and wizard is not completed, \
+                make sure you set property to -1 and complete wizard first. Then rerun modify with CROWD_SSO_ENABLE=1"
+                return 23
+            fi
+
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${STASH_CONFIG_FILE}"
+load
+defvar prop /files${STASH_CONFIG_FILE}
+set  \$prop/plugin.auth-crowd.sso.enabled true
+save
+print /augeas//error
+EOF
+            # All worked fine, nothing else to do here
+            return 0
+            ;;
+        *)
+            echo "Attempted to set CROWD_SSO for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+
+    if [ -z "${CROWD_APP_NAME}" \
+        -o -z "${CROWD_APP_PASSWORD}" \
+        -o -z "${CROWD_SERVER_URL}" ]; then
+        fatal "
+        CROWD_SSO_ENABLE is set, but one or all of the mandatory variables are not set in:
+        CROWD_APP_NAME
+        CROWD_APP_PASSWORD
+        CROWD_SERVER_URL
+
+        Note that you can also set:
+        CROWD_SESSIONS_ISAUTHENTICATED, CROWD_VALIDATION_INTERVAL"
+        exit 51
+    fi
+    CROWD_SERVICES_URL="$( echo ${CROWD_SERVER_URL} | sed -r -e's/(\/|)$//' )/services"
+    if [[ ! -f "${CROWD_PROP_FILE}" ]]; then
+        touch "${CROWD_PROP_FILE}"
+        chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${CROWD_PROP_FILE}"
+    fi
+        #crowd.properties
+        augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${CROWD_PROP_FILE}"
+load
+defvar prop /files${CROWD_PROP_FILE}
+rm  \$prop/application.login.url
+set \$prop/application.name "${CROWD_APP_NAME}"
+set \$prop/application.password "${CROWD_APP_PASSWORD}"
+set \$prop/crowd.server.url "${CROWD_SERVICES_URL}"
+set \$prop/crowd.base.url "${CROWD_SERVER_URL}"
+set \$prop/session.isauthenticated ${CROWD_SESSIONS_ISAUTHENTICATED:-"session.isauthenticated"}
+set \$prop/session.tokenkey "session.tokenkey"
+set \$prop/session.validationinterval ${CROWD_VALIDATION_INTERVAL:-2}
+set \$prop/session.lastvalidation "session.lastvalidation"
+save
+print /augeas//error
+EOF
+
+    #searph-config.xml
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
+load
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${CROWD_SSO_AUTHENTICATOR}
+save
+print /augeas//error
+EOF
+    
+    # in case of bamboo change xml_data/configuration
+    if [[ "${PRODUCT}" == "bamboo" ]]; then
+        XML_DATA_CONFIG_FILE="${HOME_DIR}/xml-data/configuration/atlassian-user.xml"
+        if [[ -f "${XML_DATA_CONFIG_FILE}" ]]; then
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${XML_DATA_CONFIG_FILE}"
+load
+rm /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/hibernate
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/crowd/#attribute/name "Crowd Repository"
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/crowd/#attribute/key "crowd"
+save
+print /augeas//error
+EOF
+        else
+            fatal "atlassian/modify/app_crowd_sso: You have to pass wizard to be able to setup crowd sso, \
+            set CROWD_SSO_ENABLE to -1 for now, pass wizard, set it to 1 and then rerun avst-app modify and restart service."
+            return 32
+        fi
+    fi
+
+elif [[ 0 -eq ${CROWD_SSO_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'confluence')
+            NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.confluence.user.ConfluenceAuthenticator"}
+            ;;
+        'jira')
+            NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.jira.security.login.JiraSeraphAuthenticator"}
+            ;;
+        'bamboo')
+            NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.bamboo.user.authentication.BambooAuthenticator"}
+            XML_DATA_CONFIG_FILE="${HOME_DIR}/xml-data/configuration/atlassian-user.xml"
+            if [[ -f "${XML_DATA_CONFIG_FILE}" ]]; then
+                augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${XML_DATA_CONFIG_FILE}"
+load
+rm /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/crowd
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/hibernate/#attribute/key "hibernateRepository"
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/hibernate/#attribute/name "Hibernate Repository"
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/hibernate/#attribute/description "Hibernate Repository"
+set /files${XML_DATA_CONFIG_FILE}/atlassian-user/repositories/hibernate/#attribute/cache "true"
+save
+print /augeas//error
+EOF
+            else
+                fatal "atlassian/modify/app_crowd_sso: You have to pass wizard to be able to setup crowd sso, \
+                set CROWD_SSO_ENABLE to -1 for now, pass wizard, set it to 0 and then rerun avst-app modify and restart service."
+                return 32
+            fi
+            ;;
+        'stash')
+            STASH_CONFIG_FILE="${HOME_DIR}/stash-config.properties"
+            if [[ ! -f "${STASH_CONFIG_FILE}" ]]; then
+                warn "Stash config file does not exist: ${HOME_DIR}/stash-config.properties, \
+                this means you have not passed wizard. CrowdSSO is disabled by default. See documentation for details."
+                return 23
+            fi
+
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${STASH_CONFIG_FILE}"
+load
+defvar prop /files${STASH_CONFIG_FILE}
+set  \$prop/plugin.auth-crowd.sso.enabled false
+save
+print /augeas//error
+EOF
+        return 0
+            ;;
+        *)
+            echo "Attempted to disable Crowd SSO for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+
+    # TODO: Need to reset to default
+    debug "Crowd SSO disabled, disabling..."
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
+load
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${NATIVE_AUTHENTICATOR}
+save
+print /augeas//error
+EOF
+else
+    debug "Crowd SSO - IGNORED"
+fi

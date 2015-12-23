@@ -1,0 +1,17 @@
+# avst-app - Adaptavist Application - Services
+#
+# By default these are in: /opt/<instance name>
+
+[Unit]
+Description="Avst-app Instance (<INSTANCE>)"
+After=syslog.target network.target
+ 
+[Service]
+Type=simple
+ExecStart=/usr/bin/avst-app <INSTANCE> start 
+ExecStop=/usr/bin/pkill -15 -P $MAINPID 
+Restart=always
+LimitNOFILE=<MAX_OPEN_FILES>
+ 
+[Install]
+WantedBy=multi-user.target

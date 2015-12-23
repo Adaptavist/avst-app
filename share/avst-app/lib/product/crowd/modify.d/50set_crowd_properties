@@ -1,0 +1,56 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+CROWD_PROPERTIES_FILE="${CROWD_PROPERTIES_FILE:-${HOME_DIR}/crowd.properties}"
+# File may not exist, augeas will fail otherwise
+DEF_CROWD_LAST_VALIDATION='session.lastvalidation'
+DEF_CROWD_IS_AUTHENTICATED='session.isauthenticated'
+DEF_CROWD_APPLICATION_NAME='crowd'
+DEF_CROWD_VALIDATION_INTERVAL='0' 
+DEF_CROWD_SESSION_TOKENKEY='session.tokenkey'
+DEF_CROWD_HTTP_TIMEOUT='30000'
+
+touch "${CROWD_PROPERTIES_FILE}"
+
+if [[ -z "${CROWD_SERVER_URL:-}" || \
+    -z "${CROWD_APP_LOGIN_URL:-}" ]]; then
+    fatal "
+One of the mandatory variables to set the crowd.properties up is missing, these are:
+    CROWD_SERVER_URL
+    CROWD_APP_LOGIN_URL"
+    exit 12
+fi
+
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${CROWD_PROPERTIES_FILE}"
+load
+defvar p "/files${CROWD_PROPERTIES_FILE}"
+set \$p/crowd.server.url "${CROWD_SERVER_URL}"
+set \$p/application.login.url "${CROWD_APP_LOGIN_URL}"
+set \$p/session.lastvalidation "${CROWD_LAST_VALIDATION:-${DEF_CROWD_LAST_VALIDATION}}"
+set \$p/session.isauthenticated "${CROWD_IS_AUTHENTICATED:-${DEF_CROWD_IS_AUTHENTICATED}}"
+set \$p/application.name "${CROWD_APPLICATION_NAME:-${DEF_CROWD_APPLICATION_NAME}}"
+set \$p/session.validationinterval "${CROWD_VALIDATION_INTERVAL:-${DEF_CROWD_VALIDATION_INTERVAL}}"
+set \$p/session.tokenkey "${CROWD_SESSION_TOKENKEY:-${DEF_CROWD_SESSION_TOKENKEY}}"
+set \$p/http.timeout "${CROWD_HTTP_TIMEOUT:-${DEF_CROWD_HTTP_TIMEOUT}}"
+
+save
+print /augeas//error
+
+EOF
+
+chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${CROWD_PROPERTIES_FILE}"
+

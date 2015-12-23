@@ -1,0 +1,38 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# move install to install_<old_version>
+if [[ -f "${INSTANCE_DIR}/.version" ]]; then 
+    OLD_VERSION=$( head -1 "${INSTANCE_DIR}/.version" )
+
+    # install dir does not exists and backed up one yes
+    # upgrading process failed after 
+
+    # if backup of this version already exists replace it with newer one
+    if [[ -d "${INSTALL_DIR}_${OLD_VERSION}" && -d "${INSTALL_DIR}" ]]; then
+        debug "Backup of version ${OLD_VERSION} already exists. Removing old backup"
+        rm -rf "${INSTALL_DIR}_${OLD_VERSION}"
+    fi
+    # if backup of this version already exists replace it with newer one
+    if [[ -d "${HOME_DIR}_${OLD_VERSION}" && -d "${HOME_DIR}" ]]; then
+        debug "Backup of version ${OLD_VERSION} already exists. Removing old backup"
+        rm -rf "${HOME_DIR}_${OLD_VERSION}"
+    fi
+    mv "${INSTALL_DIR}" "${INSTALL_DIR}_${OLD_VERSION}"
+    mv "${HOME_DIR}" "${HOME_DIR}_${OLD_VERSION}"
+else
+    fatal "File .version does not exist. It has to be present and hold old version of application to be able to upgrade."
+    exit 32
+fi

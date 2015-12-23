@@ -1,0 +1,37 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# install new version
+[[ "${DEBUG:-0}" != 0 ]] && DEBUG_OPTION='--debug'
+
+RESULT_INSTALL_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" install "${TARBALL}")
+debug "${RESULT_INSTALL_AVST_APP_CMD}"
+if [[ "$(get_std_return ${RESULT_INSTALL_AVST_APP_CMD})" != "0" ]]; then
+    fatal "common/upgrade/install_new_version: Failed while installing, check logs for more info: $(get_std_out ${RESULT_INSTALL_AVST_APP_CMD})"
+    return 35
+fi
+# home_dir after install must be empty, files are provided in modify stage
+# we can remove it just in case, this is here since install checks and creates home_dir
+rm -rf "${HOME_DIR}"
+# move backedup config files to new home_dir
+mv "${HOME_DIR}_${OLD_VERSION}" "${HOME_DIR}"
+# apply modifications
+RESULT_MODIFY_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" modify)
+debug "${RESULT_MODIFY_AVST_APP_CMD}"
+if [[ "$(get_std_return ${RESULT_MODIFY_AVST_APP_CMD})" != "0" ]]; then
+    fatal "common/upgrade/install_new_version: Failed while modifying, check logs for more info: $(get_std_out ${RESULT_MODIFY_AVST_APP_CMD})"
+    return 36
+fi
+

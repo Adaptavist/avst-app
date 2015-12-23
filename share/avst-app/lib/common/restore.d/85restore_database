@@ -1,0 +1,55 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ ! -z "${BACKUP_DATABASE_RESOURCE_COUNT:-}" && 0 -ne ${BACKUP_DATABASE_RESOURCE_COUNT} ]]; then
+    BACKUP_DATABASE_RESOURCE_COUNT="${BACKUP_DATABASE_RESOURCE_COUNT:-0}"
+    ADDTITIONAL_SEQ=""
+    [[ "${BACKUP_DATABASE_RESOURCE_COUNT}" -gt "1" ]] && \
+        ADDTITIONAL_SEQ=$(seq -f "_%g" $((${BACKUP_DATABASE_RESOURCE_COUNT} - 1)))
+    for i in '' ${ADDTITIONAL_SEQ} ; do
+        # expand gz file to /tmp/db_backup_resource${i}
+        RESOURCE=$( eval echo \$"BACKUP_DATABASE_RESOURCE${i}" )
+        debug "restore/restore_database: Restoring '${RESOURCE}' "
+  
+        BACKUP_NAME=$( eval echo \$"BACKUP_DATABASE_NAME${i}" )
+        BACKUP_USER=$( eval echo \$"BACKUP_DATABASE_USER${i}" )
+        BACKUP_PASS=$( eval echo \$"BACKUP_DATABASE_PASSWORD${i}" )
+
+        if [[ ! -z "${CUSTOM_RESTORE_DB_COMMAND:-}" ]]; then
+            # run custom command
+            RESTORE_DB_COMMAND="${CUSTOM_RESTORE_DB_COMMAND}"
+        elif [[ ! -z "${BACKUP_NAME:-}" && ! -z "${BACKUP_USER:-}" && ! -z "${BACKUP_PASS:-}" ]]; then
+            # restore mysql backup with mysql
+            RESTORE_DB_COMMAND="mysql -h localhost --user=${BACKUP_USER} --password=${BACKUP_PASS} ${BACKUP_NAME}"
+        else
+            fatal "You have to provide BACKUP_DATABASE_NAME${i}, BACKUP_DATABASE_USER${i} and BACKUP_DATABASE_PASSWORD${i} to restore database"
+            return 34
+        fi
+        if [[ -f "${RESOURCE}" ]]; then 
+            MYSQL_RESULT=$( run_cmd "gunzip -c ${RESOURCE} --stdout | ${RESTORE_DB_COMMAND}" )
+            if [[ "$(get_std_return ${MYSQL_RESULT})" != "0" ]]; then
+                fatal "restore/restore_database: Error while applying backup: $(get_std_out ${MYSQL_RESULT})"
+                return 32
+            fi
+        else
+            fatal "restore/restore_database: Error ${RESOURCE} not found."
+            return 23
+        fi
+        debug "Database restored."
+    done
+else
+    warn "restore/restore_database: Nothing passed as BACKUP_DATABASE_RESOURCE_COUNT, BACKUP_DATABASE_RESOURCE skipping database restore"
+fi
+
