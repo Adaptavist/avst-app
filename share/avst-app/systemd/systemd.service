@@ -9,7 +9,8 @@ After=syslog.target network.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/avst-app <INSTANCE> start 
-ExecStop=/usr/bin/pkill -15 -P $MAINPID 
+ExecStop=/usr/bin/pkill -15 -P $MAINPID
+ExecStopPost=/bin/sleep 5
 Restart=always
 LimitNOFILE=<MAX_OPEN_FILES>
  
