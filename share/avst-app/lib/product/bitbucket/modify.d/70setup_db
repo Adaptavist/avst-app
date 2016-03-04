@@ -15,7 +15,7 @@
 
 if [[ ! -z "${DB_SETUP_DB:-}" ]]; then
   if [[ -z "${STASH:-}" ]]; then
-    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket-config.properties"
+    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
   else
     BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/stash-config.properties"
   fi
