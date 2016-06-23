@@ -57,9 +57,9 @@ defvar application_configuration \$confluence_xml/confluence-configuration
 defvar properties \$application_configuration/properties
 set \$properties/property[#attribute/name='hibernate.c3p0.acquire_increment']/#text \"${DB_C3P0_ACQUIRE_INCREMENT:-1}\"
 set \$properties/property[#attribute/name='hibernate.c3p0.idle_test_period']/#text \"${DB_C3P0_IDLE_TEST_PERIOD:-100}\"
-set \$properties/property[#attribute/name='hibernate.c3p0.max_size']/#text \"${DB_C3P0_MAX_SIZE:-15}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.max_size']/#text \"${DB_C3P0_MAX_SIZE:-60}\"
 set \$properties/property[#attribute/name='hibernate.c3p0.max_statements']/#text \"${DB_C3P0_MAX_STATEMENTS:-0}\"
-set \$properties/property[#attribute/name='hibernate.c3p0.min_size']/#text \"${DB_C3P0_MIN_SIZE:-0}\"
+set \$properties/property[#attribute/name='hibernate.c3p0.min_size']/#text \"${DB_C3P0_MIN_SIZE:-20}\"
 set \$properties/property[#attribute/name='hibernate.c3p0.timeout']/#text \"${DB_C3P0_TIMEOUT:-30}\"
 set \$properties/property[#attribute/name='hibernate.setup']/#text \"${DB_HIBERNATE_SETUP:-true}\"
 set \$properties/property[#attribute/name='hibernate.connection.url']/#text \"${DB_JDBC_URL}\"
