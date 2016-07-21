@@ -27,6 +27,10 @@ SERVER_XML_FILE="${TOMCAT_DIR}/conf/server.xml"
 CONNECTOR_OUT=""
 AUGEAS_DOC=""
 
+
+MAX_THREADS="${MAX_THREADS:-150}"
+MAX_SPARE_THREADS="${MAX_SPARE_THREADS:-75}"
+MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
 # take an index, attribute and value and add the set or rm to the
 # AUGEAS_DOC variable building the document to be applied.
 #
@@ -96,6 +100,12 @@ for i in '' ${ADDTITIONAL_SEQ} ; do
     # Note that the proxy URL can be constructed like this:
     # ${SCHEME}://${PROXY_NAME}:$PROXY_PORT
     PROTOCOL=$( eval echo \$"PROTOCOL${i}" )
+    MAX_THREADS_FOR_CONNECTOR=$( eval echo \$"MAX_THREADS_FOR_CONNECTOR${i}" )
+    MAX_THREADS_FOR_CONNECTOR=${MAX_THREADS_FOR_CONNECTOR:-$MAX_THREADS}
+    MAX_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MAX_SPARE_THREADS_FOR_CONNECTOR${i}" )
+    MAX_SPARE_THREADS_FOR_CONNECTOR=${MAX_SPARE_THREADS_FOR_CONNECTOR:-$MAX_SPARE_THREADS}
+    MIN_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MIN_SPARE_THREADS_FOR_CONNECTOR${i}" )
+    MIN_SPARE_THREADS_FOR_CONNECTOR=${MIN_SPARE_THREADS_FOR_CONNECTOR:-$MIN_SPARE_THREADS}
     # Re-enable variable checking
     set -u
 
@@ -106,9 +116,9 @@ set \$service/Connector[${index}]/#attribute/connectionTimeout 20000\n\
 set \$service/Connector[${index}]/#attribute/disableUploadTimeout true\n\
 set \$service/Connector[${index}]/#attribute/enableLookups false\n\
 set \$service/Connector[${index}]/#attribute/maxHttpHeaderSize 8192\n\
-set \$service/Connector[${index}]/#attribute/maxSpareThreads 75\n\
-set \$service/Connector[${index}]/#attribute/maxThreads 150\n\
-set \$service/Connector[${index}]/#attribute/minSpareThreads 25\n\
+set \$service/Connector[${index}]/#attribute/maxSpareThreads ${MAX_SPARE_THREADS_FOR_CONNECTOR}\n\
+set \$service/Connector[${index}]/#attribute/maxThreads ${MAX_THREADS_FOR_CONNECTOR}\n\
+set \$service/Connector[${index}]/#attribute/minSpareThreads ${MIN_SPARE_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/redirectPort 8443\n\
 set \$service/Connector[${index}]/#attribute/useBodyEncodingForURI true\n\
 set \$service/Connector[${index}]/#attribute/URIEncoding UTF-8\n\
