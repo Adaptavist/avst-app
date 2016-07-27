@@ -14,6 +14,8 @@
 # limitations under the License.
 INIT_HOME="${INIT_HOME:-/etc}"
 OVERRIDE_FILE_NAME="${INIT_HOME}/init/${INSTANCE_NAME}.override"
+SEARCH_SERVICE_OVERRIDE_FILE_NAME="${INIT_HOME}/init/${SEARCH_SERVICE_NAME}.override"
+
 SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
 
 # if the system is using systemd, enable or disable the service
@@ -28,8 +30,14 @@ if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
                 warn "Using MANUAL_UPSTART is deprecated, please use MANUAL_SERVICE instead."
             fi
             RELOAD_CONFIG_RESULT=$( run_cmd systemctl disable ${INSTANCE_NAME} )
+            if [[ "${START_ELASTICSEARCH:-''}" != '' ]]; then
+                ENABLE_SEARCH_RESULT=$( run_cmd systemctl disable ${SEARCH_SERVICE_NAME} )  
+            fi
         else
             RELOAD_CONFIG_RESULT=$( run_cmd systemctl enable ${INSTANCE_NAME} )
+            if [[ "${START_ELASTICSEARCH:-''}" != '' ]]; then
+                ENABLE_SEARCH_RESULT=$( run_cmd systemctl enable ${SEARCH_SERVICE_NAME} )  
+            fi
         fi
         debug $RELOAD_CONFIG_RESULT
     fi
@@ -49,9 +57,18 @@ else
         if [[ ! $(grep "^${START_DIRECTIVE}" ${OVERRIDE_FILE_NAME}) ]]; then
             echo ${START_DIRECTIVE} >> "${OVERRIDE_FILE_NAME}"
         fi
+        if [[ "${START_ELASTICSEARCH:-''}" != '' ]]; then
+            if [[ ! $(grep "^${START_DIRECTIVE}" ${SEARCH_SERVICE_OVERRIDE_FILE_NAME}) ]]; then
+                echo ${START_DIRECTIVE} >> "${SEARCH_SERVICE_OVERRIDE_FILE_NAME}"
+            fi  
+        fi
     else
         if [[ -f "${OVERRIDE_FILE_NAME}" ]] && [[ $(grep "^${START_DIRECTIVE}" ${OVERRIDE_FILE_NAME}) ]]; then
             sed -i "/${START_DIRECTIVE}/d" ${OVERRIDE_FILE_NAME}
+        fi
+
+        if [[ -f "${SEARCH_SERVICE_OVERRIDE_FILE_NAME}" ]] && [[ $(grep "^${START_DIRECTIVE}" ${SEARCH_SERVICE_OVERRIDE_FILE_NAME}) ]]; then
+            sed -i "/${START_DIRECTIVE}/d" ${SEARCH_SERVICE_OVERRIDE_FILE_NAME}
         fi
     fi
 fi

@@ -4,8 +4,9 @@
 
 [Unit]
 Description="Avst-app Instance (<INSTANCE>)"
-After=syslog.target network.target
- 
+After=syslog.target network.target <SEARCH_TARGET>
+<REQUIRE_SEARCH_SERVICE>
+
 [Service]
 Type=simple
 ExecStart=/usr/bin/avst-app <INSTANCE> start 
