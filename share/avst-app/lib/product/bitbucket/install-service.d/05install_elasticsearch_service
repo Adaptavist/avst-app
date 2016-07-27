@@ -14,7 +14,7 @@
 # limitations under the License.
 
 parse_and_test_version ".tar.gz"
-VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.6.0' '<' '${VERSION}'" )
+VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.5.2' '<' '${VERSION}'" )
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     
     if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
