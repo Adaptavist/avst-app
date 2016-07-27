@@ -1,0 +1,61 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+parse_and_test_version ".tar.gz"
+VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.6.0' '<' '${VERSION}'" )
+if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+    
+    if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
+        mkdir -p "$HOME_DIR/shared/search/data"
+    fi
+    chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search"
+    chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search/data"
+
+    # to enable service in 15service_manager_reload_config
+    
+    START_ELASTICSEARCH='true'
+    SEARCH_SERVICE_MAX_OPEN_FILES="${SEARCH_SERVICE_MAX_OPEN_FILES:-${SERVICE_MAX_OPEN_FILES}}"
+    SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
+    SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
+    SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
+
+    SEARCH_SERVICE_NAME="atlas-search-${INSTANCE_NAME}"
+    if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
+        SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+        cd "${SYSTEMD_HOME}"
+        SEARCH_TARGET="${SEARCH_SERVICE_NAME}.target"
+        REQUIRE_SEARCH_SERVICE="Requires=${SEARCH_SERVICE_NAME}.service"
+        debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating systemd service."
+        cat "${SHARE_DIR}/systemd/atlas-search.service" | \
+            sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
+            sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
+            sed "s#<MAX_OPEN_FILES>#${SEARCH_SERVICE_MAX_OPEN_FILES}#g" | \
+            sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
+            sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
+            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" > "${SEARCH_SERVICE_NAME}.service"
+    else
+        INIT_HOME="${INIT_HOME:-/etc}"
+        cd "${INIT_HOME}/init"
+        debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating upstart service."
+        cat "${SHARE_DIR}/upstart/upstart-atlas-search.conf" | \
+            sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
+            sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
+            sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
+            sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
+            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" > "${SEARCH_SERVICE_NAME}.conf"
+        AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
+    fi
+fi
+

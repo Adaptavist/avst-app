@@ -1,0 +1,21 @@
+# avst-app - Adaptavist Application - Elasticsearch Service for Bitbucket Server
+#
+# By default these are in: /opt/<instance name>
+
+[Unit]
+Description="Elasticsearch Instance for Bitbucket Server"
+After=syslog.target network.target
+
+[Service]
+User=<INSTANCE_USER>
+Group=<INSTANCE_GROUP>
+Type=forking
+PIDFile=<SEARCH_HOME_DIR>/elasticsearch.pid
+ExecStart=<SEARCH_BIN_DIR>/elasticsearch -d -p <SEARCH_HOME_DIR>/elasticsearch.pid -Dpath.conf=<SEARCH_HOME_DIR> -Dpath.logs=<SEARCH_LOG_DIR> -Dpath.data=<SEARCH_HOME_DIR>/data
+ExecStop=/usr/bin/kill -15 $MAINPID
+ExecStopPost=/bin/sleep 5
+Restart=always
+LimitNOFILE=<MAX_OPEN_FILES>
+ 
+[Install]
+WantedBy=multi-user.target
