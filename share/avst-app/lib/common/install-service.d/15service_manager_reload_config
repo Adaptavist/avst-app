@@ -23,11 +23,11 @@ if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
             warn "Using MANUAL_UPSTART is deprecated, please use MANUAL_SERVICE instead."
         fi
         RELOAD_CONFIG_RESULT=$( run_cmd systemctl disable ${INSTANCE_NAME} )
-        if [[ "${START_ELASTICSEARCH:-''}" != '' ]]; then
+        if [[ "${START_ELASTICSEARCH:-}" != '' ]]; then
             ENABLE_SEARCH_RESULT=$( run_cmd systemctl disable ${SEARCH_SERVICE_NAME} )  
         fi
     else
-        if [[ "${START_ELASTICSEARCH:-''}" != '' ]]; then
+        if [[ "${START_ELASTICSEARCH:-}" != '' ]]; then
             ENABLE_SEARCH_RESULT=$( run_cmd systemctl enable ${SEARCH_SERVICE_NAME} )  
         fi
         RELOAD_CONFIG_RESULT=$( run_cmd systemctl enable ${INSTANCE_NAME} )

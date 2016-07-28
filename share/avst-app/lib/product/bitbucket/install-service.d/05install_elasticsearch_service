@@ -31,7 +31,6 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
     SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
 
-    SEARCH_SERVICE_NAME="atlas-search-${INSTANCE_NAME}"
     if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
         SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
         cd "${SYSTEMD_HOME}"
