@@ -20,11 +20,19 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
         mkdir -p "$HOME_DIR/shared/search/data"
     fi
-    chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search"
-    chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search/data"
+    # change ownership of shared/serach/data
+    chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared"
+
+    if [[ ! -f "$HOME_DIR/shared/search/elasticsearch.yml" ]]; then
+        if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml" ]]; then
+            fatal "Search service installation failed. $HOME_DIR/shared/search/elasticsearch.yml not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml"
+            exit 38
+        fi
+        cp "${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml" "$HOME_DIR/shared/search/elasticsearch.yml"
+        chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search/elasticsearch.yml"
+    fi
 
     # to enable service in 15service_manager_reload_config
-    
     START_ELASTICSEARCH='true'
     SEARCH_SERVICE_MAX_OPEN_FILES="${SEARCH_SERVICE_MAX_OPEN_FILES:-${SERVICE_MAX_OPEN_FILES}}"
     SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"

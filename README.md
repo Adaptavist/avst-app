@@ -94,6 +94,7 @@ The following exit/return codes are used (as of 2014-10-09):
 * 33: Missing .state file
 * 34: Can't upgrade application if not installed/modified
 * 36: Unsupported OS
+* 38: Search service template not found in INSTALL_DIR
 * 45: Can't stop service
 * 46: Can't start service
 * 50: Can't set CROWD_SSO for unsupported product
