@@ -30,10 +30,18 @@ fi
     if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]
     then
         cd "${SYSTEMD_HOME}"
+        if [[ -L "${INSTANCE_NAME}.service" ]]; then
+            debug "common/service_manager/create_systemd_file: Removing old service symlink '${SYSTEMD_HOME}/${INSTANCE_NAME}.service'"
+            rm -f "${INSTANCE_NAME}.service"
+        fi
         debug "common/service_manager/create_systemd_file: Creating systemd config file '${SYSTEMD_HOME}/${INSTANCE_NAME}.service'"
         cat "${SHARE_DIR}/systemd/${SYSTEMD_FILE}" | sed "s#<REQUIRE_SEARCH_SERVICE>#${REQUIRE_SEARCH_SERVICE:-}#g" | sed "s#<SEARCH_TARGET>#${SEARCH_TARGET:-}#g" | sed "s#<INSTANCE>#${INSTANCE_NAME}#g" | sed "s#<MAX_OPEN_FILES>#${SERVICE_MAX_OPEN_FILES}#g" > "${INSTANCE_NAME}.service"
     else
         cd "${INIT_HOME}/init"
+        if [[ -L "${INSTANCE_NAME}.conf" ]]; then
+            debug "common/service_manager/create_systemd_file: Removing old service symlink '${INIT_HOME}/init/${INSTANCE_NAME}.conf'"
+            rm -f "${INSTANCE_NAME}.conf"
+        fi
         debug "common/service_manager/create_upstart_link: Creating upstart config '/etc/init/${INSTANCE_NAME}.conf' based on '${SHARE_DIR}/upstart/upstart.conf'"
         cat "${SHARE_DIR}/upstart/${UPSTART_FILE}" | sed "s#<AND_SEARCH_SERVICE>#${AND_SEARCH_SERVICE:-}#g" > "${INSTANCE_NAME}.conf"
     fi
