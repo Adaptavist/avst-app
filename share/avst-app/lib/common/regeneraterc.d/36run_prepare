@@ -1,0 +1,39 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Check if application is installed
+if [[ -f "${INSTANCE_DIR}/.state" ]]; then 
+    PREVIOUS_STATE=$( head -1 "${INSTANCE_DIR}/.state" )
+else
+    PREVIOUS_STATE="uninstalled"
+fi
+
+# Temp set app state to uninstalled so we can run prepare
+update_state "uninstalled"
+
+RESULT_PREPARE_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" prepare)
+debug "${RESULT_PREPARE_AVST_APP_CMD}"
+if [[ "$(get_std_return ${RESULT_PREPARE_AVST_APP_CMD})" != "0" ]]; then
+    udpate_state "${PREVIOUS_STATE}"
+    fatal "common/regeneraterc/run_prepare: Failed while running prepare, check logs for more info: $(get_std_out ${RESULT_PREPARE_AVST_APP_CMD})"
+    return 36
+fi
+debug "common/regeneraterc/run_prepare: Done regenerating the rc directory with prepare command."
+
+CURRENTLY_INSTALLED_VERSION=`parse_installed_avst_app_version`
+echo "${CURRENTLY_INSTALLED_VERSION}" > "${INSTANCE_DIR}/.avstapp_version"
+
+update_state "${PREVIOUS_STATE}"
+

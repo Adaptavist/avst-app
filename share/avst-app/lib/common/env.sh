@@ -54,7 +54,7 @@ fi
 # create avst-app/rc/startup.cfg if it does not exists and simlink all startup files into it
 # source special files from 00add_dependencies and add ADDITIONAL_CFGS too
 # do this only when in install phase
-if [[ "${_CMD}" == "install" || "${_CMD}" == "prepare" ]]; then
+if [[ "${_CMD}" == "install" || "${_CMD}" == "prepare" || "${_CMD}" == "regeneraterc" ]]; then
     if [[ ! -d "${INSTANCE_DIR}/avst-app/rc/startup.d" ]]; then
         mkdir -p "${INSTANCE_DIR}/avst-app/rc/startup.d"
         

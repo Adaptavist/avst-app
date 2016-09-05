@@ -57,6 +57,7 @@ Within those directories should be a number of shell-scripts performing whatever
  * prepare
  * restore
  * destroy
+ * regeneraterc
 
 The naming of these shell-scripts determines the order in which they are run.
 
