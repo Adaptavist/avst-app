@@ -111,6 +111,7 @@ fi
 if [[ "${_CMD}" == "destroy" ]]; then
     debug "Removing everything from ${INSTANCE_DIR}!!!"
 else
+    check_avstapp_version
     case ${STATE} in
         uninstalled)
             case ${_CMD} in
@@ -135,12 +136,10 @@ else
                     exit 0
                     ;;
                 modify)
-                    check_avstapp_version
                     ;;
                 regeneraterc)
                     ;;
                 restore)
-                    check_avstapp_version
                     ;;
                 upgrade)
                     fatal "${THIS_COMMAND}: Application is installed but not yet modified, please run modify first. Or destroy and install with new version"
@@ -177,23 +176,18 @@ else
         modified)
             case ${_CMD} in
                 install)
-                    check_avstapp_version
                     info "${THIS_COMMAND}: Application is already installed"
                     exit 0
                     ;;
                 modify)
-                    check_avstapp_version
                     ;;
                 regeneraterc)
                     ;;
                 upgrade)
-                    check_avstapp_version
                     ;;
                 restore)
-                    check_avstapp_version
                     ;;
                 start)
-                    check_avstapp_version
                     if [[ `stat -c%Y "${INSTANCE_DIR}/.state"` < `stat -c%Y "${INSTANCE_DIR}/avst-app.cfg.sh"` ]]; then
                       fatal "There are recent changes in avst-app.cfg.sh configuration file, please run 'modify' command first to take effect."
                       exit 23
