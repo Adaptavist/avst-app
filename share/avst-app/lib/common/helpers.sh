@@ -215,6 +215,38 @@ create_instance_rc () {
     done
 }
 
+parse_installed_avst_app_version () {
+    INIT_HOME="${INIT_HOME:-/etc}"
+    if [[ -f "${INIT_HOME}/redhat-release" ]]; then
+        INSTALLED_AVSTAPP_CMD='rpm -qi avst-app'
+    elif [[ -f "${INIT_HOME}/debian_version" ]]; then
+        INSTALLED_AVSTAPP_CMD='dpkg -s avst-app'
+    else
+        fatal "Unsupported OS, contact support team"
+        exit 36
+    fi
+    CURRENTLY_INSTALLED_VERSION=`${INSTALLED_AVSTAPP_CMD} | grep Version`
+    echo ${CURRENTLY_INSTALLED_VERSION:-}
+    return 0
+}
+
+check_avstapp_version () {
+    CURRENTLY_INSTALLED_VERSION=`parse_installed_avst_app_version`
+    if [[ -f "${INSTANCE_DIR}/.avstapp_version" ]]; then 
+        AVSTAPP_CONFIGURED_FOR_VERSION=$( head -1 "${INSTANCE_DIR}/.avstapp_version" )
+
+        if [[ ${CURRENTLY_INSTALLED_VERSION} != ${AVSTAPP_CONFIGURED_FOR_VERSION} ]]; then
+            warn "shared/startup.cfg.d/check_avstapp_version: Version of currently installed avst-app does not match the version of the configuration, there may be new scripts in rc folder,\n
+            we recommend to run 'avst-app ${INSTANCE_NAME} regeneraterc' command to make use of the latest avst-app features. In case you customised rc scripts, make sure you merge the changes in after rc regeneration"
+        fi
+    else
+        debug "shared/startup.cfg.d/check_avstapp_version: File ${INSTANCE_DIR}/.avstapp_version does not exist, probably this feature does not exist in your version of avst-app, creating it now, \n
+        it is recommended to run 'avst-app ${INSTANCE_NAME} regeneraterc' command to make use of the latest avst-app features."
+        # For backwards compatibility, create avstapp_version file if not present
+        echo "${CURRENTLY_INSTALLED_VERSION}" > "${INSTANCE_DIR}/.avstapp_version"
+    fi
+}
+
 # Allows to run commands returning non 0 status and mock them if needed
 # Always returns status 0, actual status and value can be parsed using get_std_out and get_std_return methods
 run_cmd () {
