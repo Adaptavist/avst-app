@@ -14,8 +14,8 @@
 # limitations under the License.
 
 debug "start/run: Starting agent using '${INSTALL_DIR}/bamboo-agent-installer.jar'"
-
-START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" console\" )
+CUSTOM_AGENT_FLAGS="${CUSTOM_AGENT_FLAGS:-}"
+START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" ${CUSTOM_AGENT_FLAGS}" console\" )
 debug "${START_AGENT_CMD}"
 if [[ "$(get_std_return ${START_AGENT_CMD})" != "0" ]]; then
     fatal "start/run: Error while starting Bamboo Agent: $(get_std_out ${START_AGENT_CMD})"
