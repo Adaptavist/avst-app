@@ -14,11 +14,27 @@
 # limitations under the License.
 
 debug "start/run: Starting agent using '${INSTALL_DIR}/bamboo-agent-installer.jar'"
+if [[ "${VERSION:-}" == "" ]]; then
+    debug "VERSION not specified, defaulting to starting the agent without AGENT_SECURITY_TOKEN"
+    START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" console\" )
+else
+    VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.10.0' '<' '${VERSION}'" )
+    if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+        debug "Version greater than 5.10.0, optional AGENT_SECURITY_TOKEN"
+        if [[ "${AGENT_SECURITY_TOKEN:-}" == "" ]]; then
+            SECURITY_TOKEN_PARAM=""
+        else
+            SECURITY_TOKEN_PARAM="-t ${AGENT_SECURITY_TOKEN}"
+        fi
+        START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" \\\"${BAMBOO_SERVER}/agentServer\\\" ${SECURITY_TOKEN_PARAM} console\" )
+    else
+        debug "Version lower than 5.10.0, AGENT_SECURITY_TOKEN not required"
+        START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" console\" )
+    fi
+fi
 
-START_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" -Ddisable_agent_auto_capability_detection=true -jar \\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" console\" )
 debug "${START_AGENT_CMD}"
 if [[ "$(get_std_return ${START_AGENT_CMD})" != "0" ]]; then
     fatal "start/run: Error while starting Bamboo Agent: $(get_std_out ${START_AGENT_CMD})"
     return 46
 fi
-
