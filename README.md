@@ -109,7 +109,7 @@ Make sure variables are set:
 * JNDI_SOURCE_PASSWORD
 * JNDI_SOURCE_URL
 
-For more details and defaults check lib/tomcat/modify.d/40tomcat_set_vars
+For more details and defaults check lib/tomcat/modify.d/39set_session_timout and lib/tomcat/modify.d/40tomcat_set_vars
 
 ## Changing database setup
 
