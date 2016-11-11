@@ -16,16 +16,10 @@
 # This will set a connector protocol for each Confleunce connector as long as we are running Confluence 6 and above
 # the synchrony service requires the protocol to be set to "org.apache.coyote.http11.Http11NioProtocol"
 
-# Exit failing on any error
-set -e
-# Ensure that all variables have been set
-set -u
 
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.99.99' '<' '${VERSION}'" )
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     debug "confluence/modify/set_connector_protocol: Confluence version greater or equal to 6.0.0, attempting to set protocol for each connector"
-
-	SERVER_XML_FILE="${TOMCAT_DIR}/conf/server.xml"
 
 	[[ ! -r ${SERVER_XML_FILE} ]] && \
 	    fatal "confluence/modify/set_connector_protocol: Could not find server.xml" && \
@@ -54,10 +48,8 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
 	    # Re-enable variable checking
 	    set -u
 
-	    # TODO: Remove hardcoded values and add secure flag
 	    AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
 	set \$service/Connector[${index}]/#attribute/protocol ${CONNECTOR_PROTOCOL}")
-
 
 	    index=$(( $index+1 ))
 	done
