@@ -21,7 +21,6 @@ set -e
 # Ensure that all variables have been set
 set -u
 
-parse_and_test_version ".tar.gz"
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.99.99' '<' '${VERSION}'" )
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     debug "confluence/modify/set_connector_protocol: Confluence version greater or equal to 6.0.0, attempting to set protocol for each connector"
@@ -33,7 +32,6 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
 	    exit 1
 
 	AUGEAS_DOC=""
-
 
 	# The first connector will not have an index
 	# the seq -> tail generates _0 _1 etc and then drops the first one
@@ -76,4 +74,4 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
 EOF
 else
     debug "confluence/modify/set_connector_protocol: Confluence version less than 6.0.0, no need to attempt to set connector protocol"
- fi
+fi
