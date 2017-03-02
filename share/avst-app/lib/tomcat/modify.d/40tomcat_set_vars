@@ -106,6 +106,13 @@ for i in '' ${ADDTITIONAL_SEQ} ; do
     MAX_SPARE_THREADS_FOR_CONNECTOR=${MAX_SPARE_THREADS_FOR_CONNECTOR:-$MAX_SPARE_THREADS}
     MIN_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MIN_SPARE_THREADS_FOR_CONNECTOR${i}" )
     MIN_SPARE_THREADS_FOR_CONNECTOR=${MIN_SPARE_THREADS_FOR_CONNECTOR:-$MIN_SPARE_THREADS}
+
+    # check for content compression settings
+    COMPRESSION=$( eval echo \$"CONNECTOR_COMPRESSION${i}" )
+    COMPRESSION=${COMPRESSION:-}
+    COMPRESSION_MIMETYPES=$( eval echo \$"CONNECTOR_COMPRESSION_MIMETYPES${i}" )
+    COMPRESSION_MIMETYPES=${COMPRESSION_MIMETYPES:-"text/html,text/xml,text/plain,text/css,application/json,application/javascript"}
+
     # Re-enable variable checking
     set -u
 
@@ -123,6 +130,12 @@ set \$service/Connector[${index}]/#attribute/redirectPort 8443\n\
 set \$service/Connector[${index}]/#attribute/useBodyEncodingForURI true\n\
 set \$service/Connector[${index}]/#attribute/URIEncoding UTF-8\n\
 set \$service/Connector[${index}]/#attribute/server Apache")
+
+    #deal with content compressions options if set
+    if [[ ! -z ${COMPRESSION} && ! -z ${COMPRESSION_MIMETYPES} ]]; then
+        add_or_remove_connector "Connector" $index "compression" "${COMPRESSION}"
+        add_or_remove_connector "Connector" $index "compressableMimeType" "${COMPRESSION_MIMETYPES}"
+    fi
 
     if [[ "${SCHEME}" == "https" ]]; then
         add_or_remove_connector "Connector" $index "secure" "true"  
