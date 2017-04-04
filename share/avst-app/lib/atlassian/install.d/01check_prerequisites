@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Check JVM installed is good
-JAVA_VERSION=$( run_cmd java -version 2>&1 )
+JAVA_VERSION=$( run_cmd ${JAVA_BIN} -version 2>&1 )
 if [[ "${JAVA_VERSION}" != *"HotSpot"* ]]; then
     fatal "install/check_prerequisites: Java is not currently installed. Please install an Oracle JDK (not OpenJDK)"
     exit 11

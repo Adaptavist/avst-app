@@ -60,7 +60,7 @@ fi
 
 CATALINA_TMPDIR="${CATALINA_HOME}/temp"
 
-RUN_CMD="exec -a \"${INSTANCE_NAME}\" java $LOGGING_CONFIG ${JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
+RUN_CMD="exec -a \"${INSTANCE_NAME}\" ${JAVA_BIN} $LOGGING_CONFIG ${JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
       -Djava.endorsed.dirs=${JAVA_ENDORSED_DIRS:-''} \
       -classpath $CLASSPATH \
       -Dcatalina.base=$CATALINA_BASE \
