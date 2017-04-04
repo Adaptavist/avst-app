@@ -34,7 +34,6 @@ log_set_variable INSTANCE_NAME
 log_set_variable INSTANCE_DIR
 log_set_variable INSTANCE_USER
 log_set_variable INSTANCE_GROUP
-print_log "Default fallback" "Global defaults are:"
 
 ## Instance specifics
 # First bring in the user-settings
@@ -50,6 +49,13 @@ if [[ -z "${PRODUCT}" ]]; then
     fatal "env.sh: Mandatory var: PRODUCT not set in \"${INSTANCE_DIR}/avst-app.cfg.sh\""
     exit 10
 fi
+
+# if a specific path to the java binary is not provided fall back to just java and 
+# let the system work it out
+JAVA_BIN=${JAVA_BIN:-"java"}
+
+log_set_variable JAVA_BIN
+print_log "Default fallback" "Global defaults are:"
 
 # create avst-app/rc/startup.cfg if it does not exists and simlink all startup files into it
 # source special files from 00add_dependencies and add ADDITIONAL_CFGS too

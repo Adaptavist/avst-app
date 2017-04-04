@@ -18,7 +18,7 @@ DEF_JVM_MAXIMUM_MEMORY="1024m"
 DEF_JVM_MINIMUM_MEMORY="512m"
 DEF_JVM_MAX_PERM_SIZE="256m"
 
-JAVA_VERSION=$( run_cmd java -version 2>&1 )
+JAVA_VERSION=$( run_cmd ${JAVA_BIN} -version 2>&1 )
 if [[ "${JAVA_VERSION}" == *"1.6"* ]]; then
       DEF_GC_LOG_FILE="${TOMCAT_DIR}/logs/gc-$( date '+%Y%m%d-%T' ).log"
 else

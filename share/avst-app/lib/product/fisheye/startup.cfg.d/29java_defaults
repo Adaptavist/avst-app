@@ -19,7 +19,7 @@ DEF_JVM_MINIMUM_MEMORY="512m"
 DEF_JVM_MAX_PERM_SIZE="256m"
 
 DEF_HEAP_DUMP_PATH="${INSTALL_DIR}/logs/"
-JAVA_VERSION=$( run_cmd java -version 2>&1 )
+JAVA_VERSION=$( run_cmd ${JAVA_BIN} -version 2>&1 )
 if [[ "${JAVA_VERSION}" == *"1.6"* ]]; then    
       DEF_GC_LOG_FILE="${HEAP_DUMP_PATH:-${DEF_HEAP_DUMP_PATH}}/gc-$( date '+%Y%m%d-%T' ).log"
 else
