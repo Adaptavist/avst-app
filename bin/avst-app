@@ -141,6 +141,9 @@ else
                     ;;
                 restore)
                     ;;
+                install_plugins)
+                    warn "${THIS_COMMAND}: Application is installed but not yet modified, would be nice to run modify first. Proceedon your own risk."
+                    ;;
                 upgrade)
                     fatal "${THIS_COMMAND}: Application is installed but not yet modified, please run modify first. Or destroy and install with new version"
                     exit 6

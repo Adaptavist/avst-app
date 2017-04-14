@@ -1,0 +1,86 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Exit failing on any error
+set -e
+# Ensure that all variables have been set
+set -u
+
+# The first plugin will not have an index
+# the seq -> tail generates _0 _1 etc and then drops the first one
+# The list we end up with is '' '_1' '_2' etc
+UPM_PLUGINS_COUNT="${UPM_PLUGINS_COUNT:-0}"
+    
+if [[ "${UPM_PLUGINS_COUNT}" -gt "0" ]]; then
+    if [[ -z "${APPLICATION_URL:-}" || -z "${APPLICATION_ADMIN_USER:-}" || -z "${APPLICATION_ADMIN_PASS:-}" ]]; then
+        fatal "install_plugins/install_upm_plugin: APPLICATION_URL, APPLICATION_ADMIN_USER or APPLICATION_ADMIN_PASS not provided."
+        exit 14
+    fi
+    [[ "${UPM_PLUGINS_COUNT}" -gt "1" ]] && ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${UPM_PLUGINS_COUNT} - 1)))
+    index=1
+    for i in '' ${ADDTITIONAL_SEQ} ; do
+        # Disable variable checking for the dynamic variable lookup
+        # These may legitimately be unset
+        set +u
+        
+        PLUGIN_KEY=$( eval echo \$"PLUGIN_KEY${i}" )
+        PLUGIN_BUILD_NUMBER=$( eval echo \$"PLUGIN_BUILD_NUMBER${i}" )
+        PLUGIN_VERSION=$( eval echo \$"PLUGIN_VERSION${i}" )
+
+        if [[ -z "${PLUGIN_KEY:-}"  ]]; then
+            fatal "install_plugins/install_upm_plugin: PLUGIN_KEY is required to install upm plugin."
+            exit 14
+        fi
+
+        if [[ -z "${PLUGIN_BUILD_NUMBER:-}" ]]; then
+            # fetch plugin build number from marketplace
+            if [[ -z "${PLUGIN_VERSION:-}" || -z "${MARKETPLACE_USER:-}" || -z "${MARKETPLACE_PASS:-}" ]]; then
+                fatal "install_plugins/install_upm_plugin: PLUGIN_BUILD_NUMBER not provided and PLUGIN_VERSION, MARKETPLACE_USER or MARKETPLACE_PASS missing."
+                exit 14
+            fi
+            PLUGIN_BUILD_NUMBER_RESULT=$( run_cmd fetch_build_number_from_marketplace $PLUGIN_KEY $PLUGIN_VERSION $MARKETPLACE_USER $MARKETPLACE_PASS)
+            debug "${PLUGIN_BUILD_NUMBER_RESULT}"
+            if [[ "$(get_std_return ${PLUGIN_BUILD_NUMBER_RESULT})" != "0" ]]; then
+                fatal "install_plugins/install_upm_plugin: Retrieving plugin build number from marketplace failed."
+                exit 14
+            else
+                PLUGIN_BUILD_NUMBER="$(get_std_out ${PLUGIN_BUILD_NUMBER_RESULT})"
+            fi
+        fi
+
+        # fetch token or die
+        TOKEN_RESULT=$( run_cmd get_application_access_token $APPLICATION_URL $APPLICATION_ADMIN_USER $APPLICATION_ADMIN_PASS )
+        if [[ "$(get_std_return ${TOKEN_RESULT})" != "0" ]]; then
+            fatal "install_plugins/install_upm_plugin: Retrieving the access token failed."
+            exit 14
+        else
+            TOKEN="$(get_std_out ${TOKEN_RESULT})"
+        fi
+        # install plugin
+        install_plugin $PLUGIN_KEY $PLUGIN_BUILD_NUMBER $TOKEN $APPLICATION_URL $APPLICATION_ADMIN_USER $APPLICATION_ADMIN_PASS
+        # wait for installation to complete
+        plugin_installation_completed $PLUGIN_KEY $APPLICATION_URL $APPLICATION_ADMIN_USER $APPLICATION_ADMIN_PASS
+
+        PLUGIN_LICENSE=$( eval echo \$"PLUGIN_LICENSE${i}" )
+        # if plugin license provided, set it
+        if [[ ! -z "${PLUGIN_LICENSE}" ]]; then
+            install_plugin_license $PLUGIN_KEY $PLUGIN_LICENSE $APPLICATION_URL $APPLICATION_ADMIN_USER $APPLICATION_ADMIN_PASS
+        fi
+
+    done
+else
+    debug "install_plugins/install_upm_plugin: No upm plugins defined to be installed."
+fi
+
