@@ -440,6 +440,9 @@ function get_application_access_token () {
     APPLICATION_ADMIN_PASS="${3}"
     URL="${APPLICATION_URL}/rest/plugins/1.0/?os_authType=basic"
 
+    # remember the extglob option setup
+    EXTGLOB_STATUS=$( run_cmd shopt extglob | grep on )
+
     shopt -s extglob # Required to trim whitespace; see below
 
     while IFS=':' read key value; do
@@ -452,10 +455,15 @@ function get_application_access_token () {
     done < <(curl --silent -i -H "Accept: application/vnd.atl.plugins.installed+json" \
         -X GET -u "${APPLICATION_ADMIN_USER}:${APPLICATION_ADMIN_PASS}" "${URL}")
     
+    if [[ "$(get_std_return ${EXTGLOB_STATUS})" != "0" ]]; then
+        shopt -u extglob
+    fi
+
     if [[ -z "${TOKEN}" ]]; then
         fatal "Can not retrieve upm-token from ${URL}"
         exit 14
     fi
+
     echo ${TOKEN}
     return 0 
 }
