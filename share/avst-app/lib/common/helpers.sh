@@ -433,4 +433,128 @@ function signal_stop_process () {
     fi
 }
 
- 
+# Retrieves access token to running jira instance
+function get_application_access_token () {
+    APPLICATION_URL="${1}"
+    APPLICATION_ADMIN_USER="${2}"
+    APPLICATION_ADMIN_PASS="${3}"
+    URL="${APPLICATION_URL}/rest/plugins/1.0/?os_authType=basic"
+
+    # remember the extglob option setup
+    EXTGLOB_STATUS=$( run_cmd shopt extglob | grep on )
+
+    shopt -s extglob # Required to trim whitespace; see below
+
+    while IFS=':' read key value; do
+        # trim whitespace in "value"
+        value=${value##+([[:space:]])}; value=${value%%+([[:space:]])}
+        case "$key" in
+            'upm-token') TOKEN="$value"
+                    ;;
+         esac
+    done < <(curl --silent -i -H "Accept: application/vnd.atl.plugins.installed+json" \
+        -X GET -u "${APPLICATION_ADMIN_USER}:${APPLICATION_ADMIN_PASS}" "${URL}")
+    
+    if [[ "$(get_std_return ${EXTGLOB_STATUS})" != "0" ]]; then
+        shopt -u extglob
+    fi
+
+    if [[ -z "${TOKEN}" ]]; then
+        fatal "Can not retrieve upm-token from ${URL}"
+        exit 14
+    fi
+
+    echo ${TOKEN}
+    return 0 
+}
+
+function install_plugin () {
+    PLUGIN_KEY="${1}"
+    PLUGIN_BUILD_NUMBER="${2}"
+    TOKEN="${3}"
+    APPLICATION_URL="${4}"
+    APPLICATION_ADMIN_USER="${5}"
+    APPLICATION_ADMIN_PASS="${6}"
+    URL="${APPLICATION_URL}/rest/plugins/1.0/?token=${TOKEN}"
+    PLUGIN_URL="https://marketplace.atlassian.com/download/plugins/${PLUGIN_KEY}/version/${PLUGIN_BUILD_NUMBER}"
+    RESP=$(curl -i -s -o /dev/null -w "%{http_code}" -H "Accept: application/json" -H "Content-Type: application/vnd.atl.plugins.install.uri+json"  \
+        -X POST -u "${APPLICATION_ADMIN_USER}:${APPLICATION_ADMIN_PASS}" \
+        -d "{\"pluginUri\":\"${PLUGIN_URL}\"}" \
+        "${URL}")
+    if [[ "${RESP}" != "202" ]]; then
+        fatal "Installation of plugin ${PLUGIN_KEY} failed with response code ${RESP}"
+        exit 14
+    else
+        debug "Installation of plugin ${PLUGIN_KEY} ok"
+    fi
+}
+
+function plugin_installation_completed () {
+    PLUGIN_KEY="${1}"
+    APPLICATION_URL="${2}"
+    APPLICATION_ADMIN_USER="${3}"
+    APPLICATION_ADMIN_PASS="${4}"
+    URL="${APPLICATION_URL}/rest/plugins/1.0/${PLUGIN_KEY}-key/summary"
+    for i in {1..10}
+    do
+        RESP=$(curl -i -s -o /dev/null -w "%{http_code}" -H "Accept: application/vnd.atl.plugins+json"  \
+            -X GET -u "${APPLICATION_ADMIN_USER}:${APPLICATION_ADMIN_PASS}" \
+            "${URL}")
+        if [[ "${RESP}" != "200" ]]; then
+            warn "Plugin not yet installed, response code ${RESP}, waiting..."
+            sleep 10
+        else
+            debug "Plugin installed and ready to use."
+            break
+        fi
+    done
+}
+
+function install_plugin_license () {
+    PLUGIN_KEY="${1}"
+    PLUGIN_LICENSE="${2}"
+    APPLICATION_URL="${3}"
+    APPLICATION_ADMIN_USER="${4}"
+    APPLICATION_ADMIN_PASS="${5}"
+    URL="${APPLICATION_URL}/rest/plugins/1.0/${PLUGIN_KEY}-key/license"
+    RESP=$(curl -i -s -o /dev/null -w "%{http_code}" -H "Accept: application/json" \
+        -H "Content-Type: application/vnd.atl.plugins+json"  \
+        -X POST -u "${APPLICATION_ADMIN_USER}:${APPLICATION_ADMIN_PASS}" \
+        -d "{\"rawLicense\":\"${PLUGIN_LICENSE}\"}" \
+        "${URL}")
+    if [[ "${RESP}" != "200" ]]; then
+       fatal "Installation of plugin license ${PLUGIN_KEY} failed with response code ${RESP}"
+       exit 14
+   else
+        debug "Installation of plugin license ${PLUGIN_KEY} ok"
+    fi
+}
+
+function fetch_build_number_from_marketplace () {
+    PLUGIN_KEY="${1}"
+    PLUGIN_VERSION="${2}"
+    MARKETPLACE_USER="${3}"
+    MARKETPLACE_PASS="${4}"
+    MARKETPLACE_URL="https://marketplace.atlassian.com"
+    MARKETPLACE_ADDONS_URL="${MARKETPLACE_URL}/rest/2/addons"
+
+    if [[ "${PLUGIN_VERSION}" == "latest" ]]; then
+        URL="${MARKETPLACE_ADDONS_URL}/${PLUGIN_KEY}/versions/latest"
+    else
+        URL="${MARKETPLACE_ADDONS_URL}/${PLUGIN_KEY}/versions/name/${PLUGIN_VERSION}"
+    fi
+    
+    RESP=$(curl -s -H "Accept: application/json" \
+        -X GET -u "${MARKETPLACE_USER}:${MARKETPLACE_PASS}" \
+        "${URL}")
+    
+    PLUGIN_BUILD_NUMBER=$(echo "${RESP}" | sed s/,/\\n/g | grep "buildNumber" | sed s/\"buildNumber\"://)
+
+    if [[ -z "${PLUGIN_BUILD_NUMBER:-}" ]]; then
+        fatal "Can not retrieve build number for ${PLUGIN_KEY} ${PLUGIN_VERSION}"
+        exit 14
+    fi
+    echo "${PLUGIN_BUILD_NUMBER}"
+}
+
+

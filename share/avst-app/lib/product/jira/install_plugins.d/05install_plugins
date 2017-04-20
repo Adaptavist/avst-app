@@ -1,0 +1,47 @@
+#!/bin/bash
+# Copyright 2017 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Exit failing on any error
+set -e
+# Ensure that all variables have been set
+set -u
+
+# The first plugin will not have an index
+# the seq -> tail generates _0 _1 etc and then drops the first one
+# The list we end up with is '' '_1' '_2' etc
+PLUGINS_COUNT="${PLUGINS_COUNT:-1}"
+ADDTITIONAL_SEQ=""
+[[ "${PLUGINS_COUNT}" -gt "1" ]] && \
+    ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${PLUGINS_COUNT} - 1)))
+
+PLUGINS_PATH = "${INSTALL_DIR}/${WEBAPP_SUFFIX}/WEB-INF/lib"
+
+index=1
+for i in '' ${ADDTITIONAL_SEQ} ; do
+    # Disable variable checking for the dynamic variable lookup
+    # These may legitimately be unset
+    set +u
+    
+    PLUGIN_PATH=$( eval echo \$"PLUGIN_PATH${i}" )
+    if [[ ! -z "${PLUGIN_PATH}" && -f "${PLUGIN_PATH}" ]]; then
+        cp "${PLUGIN_PATH}" "${PLUGINS_PATH}/."
+        PLUGIN_FILE=$(basename $PLUGIN_PATH)
+        chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${PLUGINS_PATH}/${PLUGIN_FILE}"
+        debug "${PLUGIN_PATH} copied to #{PLUGINS_PATH}"
+    else
+        warn "Plugin ${PLUGIN_PATH} does not exist, skipping."
+    fi
+done
+
