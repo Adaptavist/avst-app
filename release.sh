@@ -7,7 +7,8 @@ set -e
 set -u
 
 function usage () {
-  echo  "$( basename $0 )  [--snapshot] --version <version> [--file <file>|--all-files]"
+  echo "$( basename $0 )  [--snapshot] --version <version> [--file <file>|--all-files]"
+  echo "      [--bintray-user --bintray-password --bintray-url --bintray-deb-repo --bintray-rpm-repo --bintray-deb-options --bintray-rpm-options]"
 }
 
 # Basic option handling
@@ -25,6 +26,34 @@ do
         ;;
     --version)
         VERSION="$2"
+        shift
+        ;;
+    --bintray-user)
+        BIN_USER=$2
+        shift
+        ;;
+    --bintray-password)
+        BIN_PASS=$2
+        shift
+        ;;
+    --bintray-url)
+        BIN_URL=$2
+        shift
+        ;;
+    --bintray-deb-repo)
+        BIN_DEB_REPO=$2
+        shift
+        ;;
+    --bintray-rpm-repo)
+        BIN_RPM_REPO=$2
+        shift
+        ;;
+    --bintray-deb-options)
+        BIN_DEB_OPTIONS=$2
+        shift
+        ;;
+    --bintray-rpm-options)
+        BIN_RPM_OPTIONS=$2
         shift
         ;;
     --deb-file)
@@ -97,10 +126,17 @@ if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSIO
     VERSION="${VERSION}-SNAPSHOT"
   fi
 
-  echo "Publishing \"${FILELIST_DEB}\" artefacts to Nexus"
+  # default the bintray variables if they have not been passed in as args
+  BIN_URL=${BIN_URL:-"https://api.bintray.com/content/adaptavist"}
+  BIN_DEB_REPO=${BIN_DEB_REPO:-"ubuntu"}
+  BIN_RPM_REPO=${BIN_RPM_REPO:-"rpm"}
+  BIN_DEB_OPTIONS=${BIN_DEB_OPTIONS:-";publish=1;deb_component=main;deb_distribution=ubuntu;deb_architecture=i386,amd64"}
+  BIN_RPM_OPTIONS=${BIN_RPM_OPTIONS:-"?publish=1"}
+
+  echo "Publishing \"${FILELIST_DEB}\" artefacts"
   for FILE in ${FILELIST_DEB}; do
     #TODO: Only does .debs for now
-    echo "Publishing \"${FILE}\" now"
+    echo "Publishing \"${FILE}\" to Nexus"
     MVN_DESC=$( dpkg --info ${FILE} | fgrep Description | sed -e's/[^:]*: //' )
     MVN_ARTIFACT=$( echo ${FILE} | sed -e's/_.*//' )
     CMD="mvn org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
@@ -116,11 +152,28 @@ if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSIO
                          -DgeneratePom.description=\"${MVN_DESC}\""
     echo "Running: >>>>${CMD}<<<<<"
     eval ${CMD}
+
+    # ** BINTRAY release **
+    # TODO: currently uploading a file for a package that does not exist on bintray will fail, add code to create if not present
+    # run bintray release if this is not a snapshot build
+    if [[ -z "${SNAPSHOT:-}" ]]; then
+      # if we have not got a bintray user/pass do not attempt the upload
+      if [[ ! -z ${BIN_USER:-} && ! -z ${BIN_PASS:-} ]]; then
+        echo "Publishing \"${FILE}\" to Bintray"
+        BINTRAY_PACKAGE=$( echo ${FILE} | sed -e's/_.*//' )
+        BIN_CMD="curl -T ${FILE} -u${BIN_USER}:${BIN_PASS} '${BIN_URL}/${BIN_DEB_REPO}/${BINTRAY_PACKAGE}/${VERSION}/${FILE}${BIN_DEB_OPTIONS}'"
+        echo "Running: >>>>${BIN_CMD}<<<<<"
+        eval $BIN_CMD
+      else
+        echo "SKipping publishing \"${FILE}\" to Bintray, as there are no auth details!"
+      fi
+    fi
+    
   done
 
-  echo "Publishing \"${FILELIST_RPM}\" artefacts to Nexus"
+  echo "Publishing \"${FILELIST_RPM}\" artefacts"
   for FILE in ${FILELIST_RPM}; do
-    echo "Publishing \"${FILE}\" now"
+    echo "Publishing \"${FILE}\" to Nexus"
     MVN_DESC=$( rpm -q -i -p ${FILE} | fgrep Summary | sed -e's/[^:]*: //' )
     MVN_ARTIFACT=$( echo ${FILE} | sed -e's/_.*//' )
     CMD="mvn org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
@@ -136,6 +189,23 @@ if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSIO
                          -DgeneratePom.description=\"${MVN_DESC}\""
     echo "Running: >>>>${CMD}<<<<<"
     eval ${CMD}
+
+    # ** BINTRAY release **
+    # TODO: currently uploading a file for a package that does not exist on bintray will fail, add code to create if not present
+    # run bintray release if this is not a snapshot build
+    if [[ -z "${SNAPSHOT:-}" ]]; then
+      # if we have not got a bintray user/pass do not attempt the upload
+      if [[ ! -z ${BIN_USER:-} && ! -z ${BIN_PASS:-} ]]; then
+        echo "Publishing \"${FILE}\" to Bintray"
+        BINTRAY_PACKAGE=$( echo ${FILE} | sed -e's/-[0-9].*//' )
+        BIN_CMD="curl -T ${FILE} -u${BIN_USER}:${BIN_PASS} '${BIN_URL}/${BIN_RPM_REPO}/${BINTRAY_PACKAGE}/${VERSION}/${FILE}${BIN_RPM_OPTIONS}'"
+        echo "Running: >>>>${BIN_CMD}<<<<<"
+        eval $BIN_CMD
+      else
+        echo "SKipping publishing \"${FILE}\" to Bintray, as there are no auth details!"
+      fi
+    fi
+
   done
   exit 0
 else

@@ -16,11 +16,16 @@ Some additional information regarding what directories are used can be found in:
 
 ## Building Packages
 
-It is only possible to build both deb and rpm packages using Ubuntu (tested on 14.04).
+It is possible to build both deb and rpm packages using Ubuntu (tested on 14.04) or CentOS (tested on 7).
 
-Prerequisites for building packages:
+Prerequisites for building packages on Ubuntu:
 
     sudo apt-get install ruby-dev git rpm
+    sudo gem install fpm                   # Don't do this on any of our servers
+    
+Prerequisites for building packages on CentOS:
+
+    sudo yum install ruby-devel git rpm-build dpkg
     sudo gem install fpm                   # Don't do this on any of our servers
 
 To build the packages of Atlassian applications (using fpm), run:
@@ -114,5 +119,6 @@ For more details and defaults check lib/tomcat/modify.d/39set_session_timout and
 ## Changing database setup
 
 Setting up database and credentials can be done by setting DB_SETUP_DB=1. For all available options per application check 70setup_db scripts
+
 
 
