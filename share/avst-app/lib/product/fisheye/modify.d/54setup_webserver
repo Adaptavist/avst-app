@@ -43,8 +43,9 @@ if [[ -z "${SITE_URL:-}" ]]; then
     warn "fisheye/modify/setup_webserver: SITE_URL not set - setting to $SITE_URL"
 fi
 
-if [[ ! -z "${NO_PROXY:-}" ]]; then
-    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+for FISHEYE_CONFIG_FILE in ${FISHEYE_CONFIG_FILES[@]}; do
+    if [[ ! -z "${NO_PROXY:-}" ]]; then
+        augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
 load
@@ -59,9 +60,9 @@ rm \$web/http/#attribute/proxy-host
 save
 print /augeas//error
 EOF
-else
-# Web server settings
-    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+    else
+        # Web server settings
+        augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
 load
@@ -75,5 +76,7 @@ set \$config/web-server/http/#attribute/proxy-scheme "${SCHEME}"
 set \$config/web-server/http/#attribute/proxy-host "${PROXY_NAME}"
 save
 print /augeas//error
+
 EOF
-fi
+    fi
+done

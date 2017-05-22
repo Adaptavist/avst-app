@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FISHEYE_CONFIG_FILE="${HOME_DIR}/config.xml"
-if [[ ! -f "${FISHEYE_CONFIG_FILE}" ]]; then
-    cat <<EOF > "${FISHEYE_CONFIG_FILE}"
+FISHEYE_HOME_CONFIG_FILE="${HOME_DIR}/config.xml"
+if [[ ! -f "${FISHEYE_HOME_CONFIG_FILE}" ]]; then
+    cat <<EOF > "${FISHEYE_HOME_CONFIG_FILE}"
 <?xml version="1.0" encoding="UTF-8"?>
 <config control-bind="127.0.0.1:8059" version="1.0">
     <web-server></web-server>
@@ -33,6 +33,14 @@ EOF
 
 fi
 
+# add the config.xml from FeCru home into the configs file array
+FISHEYE_CONFIG_FILES+=(${FISHEYE_HOME_CONFIG_FILE})
+
+# if there is a config.xml in FeCru install add it to the array as well
+if [[ -f ${INSTALL_DIR}/config.xml ]]; then
+    FISHEYE_CONFIG_FILES+=(${INSTALL_DIR}/config.xml)
+fi
+
 if [ -z "${DB_TYPE}" \
     -o -z "${DB_DRIVER}" \
     -o -z "${DB_JDBC_URL}" \
@@ -42,7 +50,9 @@ if [ -z "${DB_TYPE}" \
     return 51
 fi
 
-augtool -LA ${AUGTOOL_DEBUG} <<EOF
+# apply setting
+for FISHEYE_CONFIG_FILE in "${FISHEYE_CONFIG_FILES[@]}"; do
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
 load
@@ -58,4 +68,4 @@ save
 print /augeas//error
 
 EOF
-
+done
