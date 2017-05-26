@@ -235,7 +235,6 @@ set /augeas/load/properties/lens "Properties.lns"
 set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
 load
 defvar prop /files${BITBUCKET_PROPERTIES_FILE}
-rm \$prop/server.additional-connector*
 set \$prop/server.context-path "${CONTEXT_PATH:-/}"
 ${AUGEAS_DOC}
 ${JVM_ROUTE_CMD:-}
@@ -247,4 +246,3 @@ EOF
 else
     debug "bitbucket/modify/bitbucket_set_vars: skipping as bitbucket < 5 uses server.xml for configuration"
 fi
-	
