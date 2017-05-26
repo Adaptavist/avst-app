@@ -15,11 +15,15 @@
 
 WEB_XML_FILE="${TOMCAT_DIR}/conf/web.xml"
 
-[[ ! -r ${WEB_XML_FILE} ]] && \
-    fatal "tomcat/modify/set_session_timeout: Could not find web.xml" && \
-    exit 1
+# if the product is bitbucket version 5 or above do not run
+if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
+    debug "tomcat/modify/set_session_timeout: skipping as bitbucket >= 5 does not use web.xml for session timeout"
+else
+    [[ ! -r ${WEB_XML_FILE} ]] && \
+        fatal "tomcat/modify/set_session_timeout: Could not find web.xml" && \
+        exit 1
 
-augtool -LA ${AUGTOOL_DEBUG} <<EOF
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${WEB_XML_FILE}"
 load
@@ -32,3 +36,4 @@ save
 print /augeas//error
 
 EOF
+fi

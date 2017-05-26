@@ -1,0 +1,171 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Exit failing on any error
+set -e
+# Ensure that all variables have been set
+set -u
+
+# if the product is bitbucket version 5 or above do not run
+if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
+    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
+
+    [[ ! -r ${BITBUCKET_PROPERTIES_FILE} ]] && \
+        fatal "bitbcuket/modify/bitbucket_set_vars: Could not find bitbucket.properties" && \
+        exit 1
+
+    CONNECTOR_OUT=""
+    AUGEAS_DOC=""
+
+
+    MAX_THREADS="${MAX_THREADS:-150}"
+    MAX_SPARE_THREADS="${MAX_SPARE_THREADS:-75}"
+    MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
+    # take an index, attribute and value and add the set or rm to the
+    # AUGEAS_DOC variable building the document to be applied.
+    #
+    # $1 node name
+    # $2 index of the conenctor - required
+    # $3 the attribute to set - required
+    # $4 the value for the attribute - optional
+    add_or_remove_connector () {
+        node=$1
+        index=$2
+        attribute=$3
+        set +u
+        value=$4
+        set -u
+        # if this is not the first index remove one from it and construct additional-connector value
+        if [[ $index -gt 1 ]]; then
+            index=$(( $index-1 ))
+            add_con=".additional-connector.${index}"
+        fi
+
+        if [[ -z "${value}" ]]; then
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+rm \$prop/${node}${add_con:-}.${attribute}")
+        else
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+set \$prop/${node}${add_con:-}.${attribute} \"${value}\"")
+        fi
+    }
+
+    # The following CONNECTOR_COUNT logic and loop is to handle multiple connectors
+    # being created in server.xml The first connector will have no suffix, but all
+    # subsequent conennectors use a suffix. For example:
+    # # connector 1
+    # HTTP_PORT="8080"
+    # PROXY_NAME="example.com"
+    # # connector 2
+    # HTTP_PORT_1="8081"
+    # PROXY_NAME_1="adaptavist.com"
+    # PROXY_PORT_1="443"
+    # SCHEME_1="https"
+    #
+    # We first compute a sequance of _1 _2 etc if there is more than one conenctor
+    # Then loop over those additional connectors, plus the first empty one using
+    # eval echo to dynamically look up the variables
+
+    # The first connector will not have an index
+    # the seq -> tail generates _0 _1 etc and then drops the first one
+    # The list we end up with is '' '_1' '_2' etc
+    CONNECTOR_COUNT="${CONNECTOR_COUNT:-1}"
+    ADDTITIONAL_SEQ=""
+    [[ "${CONNECTOR_COUNT}" -gt "1" ]] && \
+        ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${CONNECTOR_COUNT} - 1)))
+
+    index=1
+    for i in '' ${ADDTITIONAL_SEQ} ; do
+        if [[ $index -gt 6 ]]; then
+            fatal "bitbcuket/modify/bitbucket_set_vars: working on connector number ${index}, bitbucket can only have 6 connectors"
+            exit 50
+        fi
+
+        # Disable variable checking for the dynamic variable lookup
+        # These may legitimately be unset
+        set +u
+        #Port on which to start
+        HTTP_PORT=$( eval echo \$"HTTP_PORT${i}" )
+        HTTP_PORT=${HTTP_PORT:-"${DEFAULT_PORT}"}
+        # scheme. Must be http or https
+        SCHEME=$( eval echo \$"SCHEME${i}" )
+        SCHEME=${SCHEME:-"http"}
+        # reverse proxy name the canonical name of the server. Should match the base url minus the context path and scheme
+        # For a site accessible at https://example.com/jira this should be set to example.com
+        PROXY_NAME=$( eval echo \$"PROXY_NAME${i}" )
+        # reverse proxy port for SSL use 443
+        PROXY_PORT=$( eval echo \$"PROXY_PORT${i}" )
+        # Note that the proxy URL can be constructed like this:
+        # ${SCHEME}://${PROXY_NAME}:$PROXY_PORT
+        PROTOCOL=$( eval echo \$"PROTOCOL${i}" )
+        MAX_THREADS_FOR_CONNECTOR=$( eval echo \$"MAX_THREADS_FOR_CONNECTOR${i}" )
+        MAX_THREADS_FOR_CONNECTOR=${MAX_THREADS_FOR_CONNECTOR:-$MAX_THREADS}
+        MAX_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MAX_SPARE_THREADS_FOR_CONNECTOR${i}" )
+        MAX_SPARE_THREADS_FOR_CONNECTOR=${MAX_SPARE_THREADS_FOR_CONNECTOR:-$MAX_SPARE_THREADS}
+        MIN_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MIN_SPARE_THREADS_FOR_CONNECTOR${i}" )
+        MIN_SPARE_THREADS_FOR_CONNECTOR=${MIN_SPARE_THREADS_FOR_CONNECTOR:-$MIN_SPARE_THREADS}
+
+        # check for content compression settings
+        COMPRESSION=$( eval echo \$"CONNECTOR_COMPRESSION${i}" )
+        COMPRESSION=${COMPRESSION:-}
+        COMPRESSION_MIMETYPES=$( eval echo \$"CONNECTOR_COMPRESSION_MIMETYPES${i}" )
+        COMPRESSION_MIMETYPES=${COMPRESSION_MIMETYPES:-"text/html,text/xml,text/plain,text/css,application/json,application/javascript"}
+
+        # Re-enable variable checking
+        set -u
+
+        #deal with content compressions options if set
+        if [[ ! -z ${COMPRESSION} && ! -z ${COMPRESSION_MIMETYPES} ]]; then
+            # convert old pre bitbucket 5 compression syntax
+            if [[ ${COMPRESSION} == "on" ]]; then
+                COMPRESSION="true"
+            elif [[ ${COMPRESSION} == "off" ]]; then
+                COMPRESSION="false"
+            fi
+            add_or_remove_connector "server" $index "compression.enabled" "${COMPRESSION}"
+            add_or_remove_connector "server" $index "compression.mime-types" "${COMPRESSION_MIMETYPES}"
+        fi
+
+        if [[ "${SCHEME}" == "https" ]]; then
+            add_or_remove_connector "server" $index "secure" "true"  
+        fi
+        add_or_remove_connector "server" $index "redirectPort" "8443"
+        add_or_remove_connector "server" $index "connection-timeout" "20000"
+        add_or_remove_connector "server" $index "port" "${HTTP_PORT}"
+        add_or_remove_connector "server" $index "scheme" "${SCHEME}"
+        add_or_remove_connector "server" $index "proxy-name" "${PROXY_NAME}"
+        add_or_remove_connector "server" $index "proxy-port" "${PROXY_PORT}"
+        add_or_remove_connector "server" $index "protocol" "${PROTOCOL}"
+
+        index=$(( $index+1 ))
+    done
+
+    # remove any additional connectors via sed, they will be put back if in the AUGEAS_DOC
+    sed -i '/^server.additional-connector/d' "${BITBUCKET_PROPERTIES_FILE}"
+
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
+load
+defvar prop /files${BITBUCKET_PROPERTIES_FILE}
+set \$prop/server.context-path "${CONTEXT_PATH:-/}"
+${AUGEAS_DOC}
+save
+print /augeas//error
+
+EOF
+else
+    debug "bitbucket/modify/bitbucket_set_vars: skipping as bitbucket < 5 uses server.xml for configuration"
+fi
