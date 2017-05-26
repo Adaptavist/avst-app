@@ -58,6 +58,15 @@ if [[ -z "${LOGGING_MANAGER:-}" ]]; then
     fi
 fi
 
+# if this is bitbucket ver 5 or above set correct classpath, strat class and logger
+if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
+    CLASSPATH="${CLASSPATH}:${CATALINA_HOME}/app"
+    RUN_CLASS="com.atlassian.bitbucket.internal.launcher.BitbucketServerLauncher"
+    LOGGING_MANAGER=""
+else
+    RUN_CLASS="org.apache.catalina.startup.Bootstrap"
+fi
+
 CATALINA_TMPDIR="${CATALINA_HOME}/temp"
 
 RUN_CMD="exec -a \"${INSTANCE_NAME}\" ${JAVA_BIN} $LOGGING_CONFIG ${JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
@@ -66,7 +75,7 @@ RUN_CMD="exec -a \"${INSTANCE_NAME}\" ${JAVA_BIN} $LOGGING_CONFIG ${JAVA_OPTS} $
       -Dcatalina.base=$CATALINA_BASE \
       -Dcatalina.home=$CATALINA_HOME \
       -Djava.io.tmpdir=$CATALINA_TMPDIR \
-      org.apache.catalina.startup.Bootstrap start";
+      ${RUN_CLASS} start";
 
 debug "tomcat/start/run Running: ${RUN_CMD}"
 

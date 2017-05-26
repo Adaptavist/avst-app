@@ -24,10 +24,14 @@ if [[ -f "${INSTANCE_DIR}/.version" ]]; then
     if [[ $MAJOR_VER -lt 4 ]]; then
         WEBAPP_SUFFIX="atlassian-stash"
         STASH="stash"
-    else
+    elif [[ $MAJOR_VER -lt 5 ]]; then
         WEBAPP_SUFFIX="atlassian-bitbucket"
+    else
+        WEBAPP_SUFFIX="app"
     fi
     log_set_variable WEBAPP_SUFFIX
+else
+    MAJOR_VER=$(echo $VERSION | sed 's/\..*//')
 fi
 
 log_set_variable APP_SERVER
