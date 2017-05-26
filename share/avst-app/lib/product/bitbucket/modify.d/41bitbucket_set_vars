@@ -23,7 +23,7 @@ if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
     BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
 
     [[ ! -r ${BITBUCKET_PROPERTIES_FILE} ]] && \
-        fatal "bitbcuket/modify/bitbucket_set_vars: Could not find server.xml" && \
+        fatal "bitbcuket/modify/bitbucket_set_vars: Could not find bitbucket.properties" && \
         exit 1
 
     CONNECTOR_OUT=""
@@ -47,10 +47,12 @@ if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
         set +u
         value=$4
         set -u
+        # if this is not the first index remove one from it and construct additional-connector value
         if [[ $index -gt 1 ]]; then
-        	index=$(( $index-1 ))
+            index=$(( $index-1 ))
             add_con=".additional-connector.${index}"
         fi
+
         if [[ -z "${value}" ]]; then
             AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
 rm \$prop/${node}${add_con:-}.${attribute}")
@@ -86,10 +88,9 @@ set \$prop/${node}${add_con:-}.${attribute} \"${value}\"")
 
     index=1
     for i in '' ${ADDTITIONAL_SEQ} ; do
-         echo "working on index ${index}"
-        if [[ $index -gt 7 ]]; then
-        	fatal "bitbcuket/modify/bitbucket_set_vars: working on connector number ${index}, bitbucket can only have 6 connectors"
-        	exit 50
+        if [[ $index -gt 6 ]]; then
+            fatal "bitbcuket/modify/bitbucket_set_vars: working on connector number ${index}, bitbucket can only have 6 connectors"
+            exit 50
         fi
 
         # Disable variable checking for the dynamic variable lookup
@@ -127,11 +128,11 @@ set \$prop/${node}${add_con:-}.${attribute} \"${value}\"")
 
         #deal with content compressions options if set
         if [[ ! -z ${COMPRESSION} && ! -z ${COMPRESSION_MIMETYPES} ]]; then
-        	# convert old pre bitbucket 5 compression syntax
-        	if [[ ${COMPRESSION} == "on" ]]; then
-        		COMPRESSION="true"
-        	elif [[ ${COMPRESSION} == "off" ]]; then
-        	    COMPRESSION="false"
+            # convert old pre bitbucket 5 compression syntax
+            if [[ ${COMPRESSION} == "on" ]]; then
+                COMPRESSION="true"
+            elif [[ ${COMPRESSION} == "off" ]]; then
+                COMPRESSION="false"
             fi
             add_or_remove_connector "server" $index "compression.enabled" "${COMPRESSION}"
             add_or_remove_connector "server" $index "compression.mime-types" "${COMPRESSION_MIMETYPES}"
@@ -161,8 +162,6 @@ load
 defvar prop /files${BITBUCKET_PROPERTIES_FILE}
 set \$prop/server.context-path "${CONTEXT_PATH:-/}"
 ${AUGEAS_DOC}
-${JVM_ROUTE_CMD:-}
-${JNDI_SOURCE_CMD:-}
 save
 print /augeas//error
 
