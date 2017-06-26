@@ -151,10 +151,8 @@ set \$service/Connector[${index}]/#attribute/server Apache")
         add_or_remove_connector "Connector" $index "proxyPort" "${PROXY_PORT}"
         add_or_remove_connector "Connector" $index "protocol" "${PROTOCOL}"
 
-        # if there is a max parameter count defined add it to the connector
-        if [[ ! -z ${MAX_PARAMETER_COUNT} ]]; then
-            add_or_remove_connector "Connector" $index "maxParameterCount" "${MAX_PARAMETER_COUNT}"
-        fi
+        # if there is a max parameter count defined add it to the connector, if not remove it
+        add_or_remove_connector "Connector" $index "maxParameterCount" "${MAX_PARAMETER_COUNT}"
 
         index=$(( $index+1 ))
     done
