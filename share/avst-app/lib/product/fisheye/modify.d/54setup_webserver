@@ -46,9 +46,8 @@ fi
 for FISHEYE_CONFIG_FILE in ${FISHEYE_CONFIG_FILES[@]}; do
 
     # make sure that the site-url element under web-server is present
-    if [[ ! $(grep 'site-url' ${FISHEYE_CONFIG_FILE}) ]]; then
-        sed -i 's/<web-server>/<web-server site-url="">/g' ${FISHEYE_CONFIG_FILE}
-    fi
+    sed -i 's#<web-server>#<web-server site-url="">#g' ${FISHEYE_CONFIG_FILE}
+    sed -i 's#<web-server/>#<web-server site-url=""></web-server>#g' ${FISHEYE_CONFIG_FILE}
 
     if [[ ! -z "${NO_PROXY:-}" ]]; then
         augtool -LA ${AUGTOOL_DEBUG} <<EOF
