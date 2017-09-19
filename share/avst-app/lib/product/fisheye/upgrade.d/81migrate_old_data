@@ -1,0 +1,59 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# define locations to copy
+FECRU_COPY_OLD_INSTALL_LIST=("var" "cache" "config.xml")
+
+# get flag value, default to 1 (on), set to 0 for off
+FECRU_COPY_FROM_OLD_INSTALL=${FECRU_COPY_FROM_OLD_INSTALL:-1}
+
+if [[ ${FECRU_COPY_FROM_OLD_INSTALL} -eq 1 ]]; then
+    debug "fisheye/upgrade/migrate_old_data: Attempting to copy objects from old install directory"
+    # attempt to copy any old install dir elements
+    for FECRU_COPY_OLD_INSTALL in ${FECRU_COPY_OLD_INSTALL_LIST[@]}; do
+        if [[ -e ${INSTALL_DIR}_${OLD_VERSION}/${FECRU_COPY_OLD_INSTALL} ]]; then
+            debug "fisheye/upgrade/migrate_old_data: Attempting to move ${FECRU_COPY_OLD_INSTALL} from old install folder into new"
+
+            # if a new version of the object exists archive it
+            if [[ -e ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL} ]]; then
+                # remove any existing backup object
+                if [[ -e ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL}_fresh_install ]]; then
+                    rm -Rf ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL}_fresh_install
+                fi
+
+                # backup the current version of the item
+                mv ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL} ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL}_fresh_install
+            fi
+
+            # move the old item
+            mv ${INSTALL_DIR}_${OLD_VERSION}/${FECRU_COPY_OLD_INSTALL} ${INSTALL_DIR}/${FECRU_COPY_OLD_INSTALL}
+        else
+            debug "fisheye/upgrade/migrate_old_data: Item ${FECRU_COPY_OLD_INSTALL} did not exist in old install folder, move skipped."
+        fi
+    done
+
+    # apply modifications
+    RESULT_MODIFY_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" modify)
+    debug "fisheye/upgrade/migrate_old_data: ${RESULT_MODIFY_AVST_APP_CMD}"
+    if [[ "$(get_std_return ${RESULT_MODIFY_AVST_APP_CMD})" != "0" ]]; then
+        fatal "common/upgrade/install_new_version: Failed while modifying, check logs for more info: $(get_std_out ${RESULT_MODIFY_AVST_APP_CMD})"
+        return 36
+    fi
+else
+    debug "fisheye/upgrade/migrate_old_data: Fisheye copy old install objects disabled, skipping."
+fi
+
+
+
