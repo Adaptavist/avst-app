@@ -14,7 +14,9 @@
 # limitations under the License.
 
 # define locations to copy
-FECRU_COPY_OLD_INSTALL_LIST=("var" "cache" "config.xml")
+if [[ -z ${FECRU_COPY_OLD_INSTALL_LIST:-} ]]; then
+    FECRU_COPY_OLD_INSTALL_LIST=("var" "cache" "config.xml" "data")
+fi
 
 # get flag value, default to 1 (on), set to 0 for off
 FECRU_COPY_FROM_OLD_INSTALL=${FECRU_COPY_FROM_OLD_INSTALL:-1}
