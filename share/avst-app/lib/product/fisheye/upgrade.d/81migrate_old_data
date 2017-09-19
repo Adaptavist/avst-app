@@ -48,7 +48,7 @@ if [[ ${FECRU_COPY_FROM_OLD_INSTALL} -eq 1 ]]; then
     RESULT_MODIFY_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" modify)
     debug "fisheye/upgrade/migrate_old_data: ${RESULT_MODIFY_AVST_APP_CMD}"
     if [[ "$(get_std_return ${RESULT_MODIFY_AVST_APP_CMD})" != "0" ]]; then
-        fatal "common/upgrade/install_new_version: Failed while modifying, check logs for more info: $(get_std_out ${RESULT_MODIFY_AVST_APP_CMD})"
+        fatal "fisheye/upgrade/migrate_old_data: Failed while modifying, check logs for more info: $(get_std_out ${RESULT_MODIFY_AVST_APP_CMD})"
         return 36
     fi
 else
