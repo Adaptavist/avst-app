@@ -45,6 +45,8 @@ set /augeas/load/xml/incl "${FISHEYE_CONFIG_FILE}"
 load
 defvar server_xml "/files/${FISHEYE_CONFIG_FILE}"
 defvar config \$server_xml/config
+set \$config/security
+set \$config/security/crowd
 set \$config/security/crowd/#attribute/auto-add true
 set \$config/security/crowd/#attribute/refreshExistingUsers "true"
 set \$config/security/crowd/#attribute/resyncPeriod "1 hour"
