@@ -43,10 +43,15 @@ if [[ 1 -eq ${CROWD_SSO_ENABLE} ]]; then
                 return 23
             fi
             ;;
-        'stash')
-            STASH_CONFIG_FILE="${HOME_DIR}/stash-config.properties"
-            if [[ ! -f "${STASH_CONFIG_FILE}" ]]; then
-                fatal "Stash config file does not exist: ${HOME_DIR}/stash-config.properties \
+        'bitbucket')
+            # set in 03app_server based on version 
+            if [[ -z "${STASH:-}" ]]; then
+                BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
+            else
+                BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/stash-config.properties"
+            fi
+            if [[ ! -f "${BITBUCKET_PROPERTIES_FILE}" ]]; then
+                fatal "Bitbucket config file does not exist: ${BITBUCKET_PROPERTIES_FILE} \
                 You are probably running with CROWD_SSO_ENABLE=1 and wizard is not completed, \
                 make sure you set property to -1 and complete wizard first. Then rerun modify with CROWD_SSO_ENABLE=1"
                 return 23
@@ -54,9 +59,9 @@ if [[ 1 -eq ${CROWD_SSO_ENABLE} ]]; then
 
             augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/properties/lens "Properties.lns"
-set /augeas/load/properties/incl "${STASH_CONFIG_FILE}"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
 load
-defvar prop /files${STASH_CONFIG_FILE}
+defvar prop /files${BITBUCKET_PROPERTIES_FILE}
 set  \$prop/plugin.auth-crowd.sso.enabled true
 save
 print /augeas//error
@@ -167,19 +172,24 @@ EOF
                 return 32
             fi
             ;;
-        'stash')
-            STASH_CONFIG_FILE="${HOME_DIR}/stash-config.properties"
-            if [[ ! -f "${STASH_CONFIG_FILE}" ]]; then
-                warn "Stash config file does not exist: ${HOME_DIR}/stash-config.properties, \
+        'bitbucket')
+            # set in 03app_server based on version 
+            if [[ -z "${STASH:-}" ]]; then
+                BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
+            else
+                BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/stash-config.properties"
+            fi
+            if [[ ! -f "${BITBUCKET_PROPERTIES_FILE}" ]]; then
+                warn "Bitbucket config file does not exist: ${BITBUCKET_PROPERTIES_FILE}, \
                 this means you have not passed wizard. CrowdSSO is disabled by default. See documentation for details."
                 return 23
             fi
 
             augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/properties/lens "Properties.lns"
-set /augeas/load/properties/incl "${STASH_CONFIG_FILE}"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
 load
-defvar prop /files${STASH_CONFIG_FILE}
+defvar prop /files${BITBUCKET_PROPERTIES_FILE}
 set  \$prop/plugin.auth-crowd.sso.enabled false
 save
 print /augeas//error
