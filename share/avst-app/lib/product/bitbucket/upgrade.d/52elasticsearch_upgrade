@@ -19,18 +19,20 @@
 OLD_VERSION=$( head -1 "${INSTANCE_DIR}/.version" )
 debug "bitbucket/update/elasticsearch_upgrade: Looking at ES upgrade, only needed if old was < 5.7.0 and new is >= 5.7.0"
 
-# if the old version was
+
 OLD_VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${OLD_VERSION}'" )
 NEW_VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${VERSION}'" )
+# if the old version was running >=5.7.0 5 there is nothing to do
 if [[ "$(get_std_return ${OLD_VERSIONS_COMPARED_RESULT})" == "0" ]]; then
 	debug "bitbucket/update/elasticsearch_upgrade: Old version of ES is already >= 5.7.0, no action needed"
 else
+	# if the old version was < 5.7.0 and the new version is >= 5.7.0 remove ES v2 yml file
     if [[ "$(get_std_return ${NEW_VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     	if [[ -f "${HOME_DIR}/shared/search/elasticsearch.yml" ]]; then
             debug "bitbucket/update/elasticsearch_upgrade: attempting to remove ${HOME_DIR}/shared/search/elasticsearch.yml"
             rm -f "${HOME_DIR}/shared/search/elasticsearch.yml"
         else
-        	debug "bitbucket/update/elasticsearch_upgrade: attempting to remove ${HOME_DIR}/shared/search/elasticsearch.yml"
+            debug "bitbucket/update/elasticsearch_upgrade: No file to remove"
     	fi
     else
     	debug "bitbucket/update/elasticsearch_upgrade: New version of ES is < 5.7.0, no action needed"
