@@ -17,20 +17,47 @@ parse_and_test_version ".tar.gz"
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.5.2' '<' '${VERSION}'" )
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     
+    # Bitbucket >= 5.7.0 used ElasticSearch 5, set files to copy and argument letter accordingly
+    VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${VERSION}'" )
+    if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+        # setup jvm.options
+        if [[ ! -d "${INSTALL_DIR}/elasticsearch/config" ]]; then
+            mkdir -p "${INSTALL_DIR}/elasticsearch/config"
+        fi
+        if [[ ! -f "${INSTALL_DIR}/elasticsearch/config/jvm.options" ]]; then
+            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" ]]; then
+                fatal "Search service installation failed. ${INSTALL_DIR}/elasticsearch/config/jvm.options not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/jvm.options"
+                exit 38
+            fi
+            cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
+            chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
+        fi
+        # set files to copy and arg letter
+        ES_FILES_TO_COPY=('elasticsearch.yml' 'log4j2.properties')
+        ES_CONFIG_ARG="E"
+    else
+        # set files to copy and arg letter
+        ES_FILES_TO_COPY=('elasticsearch.yml')
+        ES_CONFIG_ARG="D"
+    fi
+
     if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
         mkdir -p "$HOME_DIR/shared/search/data"
     fi
     # change ownership of shared/serach/data
     chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared"
-
-    if [[ ! -f "$HOME_DIR/shared/search/elasticsearch.yml" ]]; then
-        if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml" ]]; then
-            fatal "Search service installation failed. $HOME_DIR/shared/search/elasticsearch.yml not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml"
-            exit 38
+    
+    # loop throught all the files to copy
+    for COPY_FILE in "${ES_FILES_TO_COPY[@]}"; do
+        if [[ ! -f "${HOME_DIR}/shared/search/${COPY_FILE}" ]]; then
+            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" ]]; then
+                fatal "Search service installation failed. ${HOME_DIR}/shared/search/${COPY_FILE} not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}"
+                exit 38
+            fi
+            cp "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" "${HOME_DIR}/shared/search/${COPY_FILE}"
+            chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${HOME_DIR}/shared/search/${COPY_FILE}"
         fi
-        cp "${INSTALL_DIR}/elasticsearch/config-template/elasticsearch.yml" "$HOME_DIR/shared/search/elasticsearch.yml"
-        chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search/elasticsearch.yml"
-    fi
+    done
 
     # to enable service in 15service_manager_reload_config
     START_ELASTICSEARCH='true'
@@ -51,7 +78,8 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             sed "s#<MAX_OPEN_FILES>#${SEARCH_SERVICE_MAX_OPEN_FILES}#g" | \
             sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
             sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
-            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" > "${SEARCH_SERVICE_NAME}.service"
+            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+            sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.service"
     else
         INIT_HOME="${INIT_HOME:-/etc}"
         cd "${INIT_HOME}/init"
@@ -61,7 +89,8 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
             sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
             sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
-            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" > "${SEARCH_SERVICE_NAME}.conf"
+            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+            sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.conf"
         AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
     fi
 fi
