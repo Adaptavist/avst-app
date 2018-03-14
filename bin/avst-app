@@ -61,6 +61,9 @@ do
             FORCE=1
             ALLOW_DOWNGRADE=1
             ;;
+        --no-autostart)
+            START_AFTER_UPGRADE=1
+            ;;
         --allow-git-avst-keeper)
             GIT_AVST_KEEPER=1
             ;;
