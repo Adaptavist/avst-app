@@ -22,6 +22,8 @@ fi
 RESULT_SERVICE_STOPPED=$(run_cmd "service '${INSTANCE_NAME}' status | grep '${SERVICE_STATUS_SEARCH_STRING}'")
 debug "${RESULT_SERVICE_STOPPED}"
 if [[ "$(get_std_return ${RESULT_SERVICE_STOPPED})" == "0" ]]; then
-    run_cmd start_service
+    if [[ "${START_AFTER_UPGRADE:-0}" == "0"  ]]; then
+        run_cmd start_service
+    fi
 fi
 
