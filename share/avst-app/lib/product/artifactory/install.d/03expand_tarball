@@ -20,8 +20,15 @@ if [[ "$(get_std_return ${EXTRACT_TARBALL_RESULT})" != "0" ]]; then
     fatal "install/expand_tarball: Error while expanding tarball: $(get_std_out ${EXTRACT_TARBALL_RESULT})"
     return 32
 fi
-# artifactory-powerpack-standalone-3.2.1.1.zip    artifactory-powerpack-standalone-3.3.0.zip
-mv "${INSTANCE_DIR}/install/artifactory-powerpack-${VERSION}"/* "${INSTANCE_DIR}"/install/.
-rmdir "${INSTANCE_DIR}/install/artifactory-powerpack-${VERSION}"
+# artifactory-powerpack-standalone-3.2.1.1.zip    artifactory-powerpack-standalone-3.3.0.zip   jfrog-artifactory-pro-4.9.0.zip
+if [[ -d "${INSTANCE_DIR}/install/artifactory-powerpack-${VERSION}" ]]; then
+  MOVE_SOURCE="${INSTANCE_DIR}/install/artifactory-powerpack-${VERSION}"
+else
+  MOVE_SOURCE="${INSTANCE_DIR}/install/artifactory-pro-${VERSION}"
+fi
+
+
+mv "${MOVE_SOURCE}"/* "${INSTANCE_DIR}"/install/.
+rmdir "${MOVE_SOURCE}"
 run_cmd chown -R "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${INSTANCE_DIR}/install"
 

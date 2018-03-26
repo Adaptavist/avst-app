@@ -20,7 +20,7 @@ if [[ -f ${INSTALL_DIR}/bin/installService.sh ]]; then
     sed -i 's/installService$//g' ${INSTALL_DIR}/bin/installService.sh
     sed -i 's/prepareTomcat$//g' ${INSTALL_DIR}/bin/installService.sh
     
-    . ${INSTALL_DIR}/bin/installService.sh
+    . ${INSTALL_DIR}/bin/installService.sh ${INSTANCE_USER}
     set -u
 else
     fail "Make sure the installation is correct. Can not find ${INSTALL_DIR}/bin/installService.sh"
