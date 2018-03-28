@@ -1,0 +1,37 @@
+Release 0.48, 28th March 2018
+-----------------------------
+
+Added support for later versions of artifactory pro upto 5.9.3
+
+Release 0.47, 14th March 2018
+-----------------------------
+
+Added '--no-autostart' flag to stop auto restarting of instances after upgrades
+
+Syntax:
+  sudo avst-app --- <INSTANCE> upgrade <PATH_TO_TAR>
+Example:
+ sudo avst-app --- bitbucket upgrade /tmp/atlassian-bitbucket-5.9.0.tar.gz
+
+Release 0.46, 7th Febuary 2018
+------------------------------
+
+Fixed bug with fisheye upgrade, previously version check was not performed and therefore it
+was possible to run an upgrade without setting correct version number in avst-app.cfg.sh,
+causing unexpected behaviour
+
+Release 0.45, 26th January 2018 
+-------------------------------
+
+Added support for elasticsearch 5.x which is shipped in Bitbucket >= 5.7.0
+
+Release 0.44, 25th January 2018
+-------------------------------
+
+Fixed SSO for bitbucket server, it only worked for stash previously
+
+Release 0.43, 19th September 2017
+---------------------------------
+
+Added functionality to copy items from the old FeCru install dir into the new one, this is needed
+when the FeCru install directory is also the active 'home' directory
