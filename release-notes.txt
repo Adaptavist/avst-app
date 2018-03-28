@@ -9,9 +9,9 @@ Release 0.47, 14th March 2018
 Added '--no-autostart' flag to stop auto restarting of instances after upgrades
 
 Syntax:
-  sudo avst-app --- <INSTANCE> upgrade <PATH_TO_TAR>
+  sudo avst-app --no-autostart <INSTANCE> upgrade <PATH_TO_TAR>
 Example:
- sudo avst-app --- bitbucket upgrade /tmp/atlassian-bitbucket-5.9.0.tar.gz
+ sudo avst-app --no-autostart bitbucket upgrade /tmp/atlassian-bitbucket-5.9.0.tar.gz
 
 Release 0.46, 7th Febuary 2018
 ------------------------------
