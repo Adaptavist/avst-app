@@ -1,0 +1,166 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Possible values are:
+#  0 - Disabled i.e. actively disable OKTA SSO
+#  1 - Enabled i.e. enable OKTA SSO
+# -1 - Ignore i.e. do nothing
+
+OKTA_SSO_ENABLE="${OKTA_SSO_ENABLE:--1}"
+
+SERAPH_CONFIG_FILE=${SERAPH_CONFIG_FILE:-"${WEBAPP_DIR}/WEB-INF/classes/seraph-config.xml"}
+
+# TODO: Support more apps e.g. Stash, FeCru, etc.
+# TODO: Add better way of setting login.url etc, relying on the possition of the entry in seraph-config.xml is just wrong
+
+LOGOUT_URL_SET=""
+LOGIN_URL_SET=""
+LINK_LOGIN_URL_SET=""
+LOGIN_URL_STRATEGY_SET=""
+
+if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'jira')
+            OKTR_SSO_AUTHENTICATOR=${OKTR_SSO_AUTHENTICATOR:-"com.atlassian.jira.authenticator.okta.OktaJiraAuthenticator30"}
+            OKTA_LOGIN_URL_STRATEGY_CLASS=${OKTA_LOGIN_URL_STRATEGY_CLASS:-}
+            OKTA_CONFIG_FILE="${OKTA_CONFIG_FILE:-}"
+            OTKR_SSO_DRIVER_LOCATION="${OTKR_SSO_DRIVER_LOCATION:-}"
+            OKTA_DRIVER_DESTINATION="${OKTA_DRIVER_DESTINATION:-${INSTALL_DIR}/atlassian-jira/WEB-INF/lib}"
+            OKTA_LOGIN_URL=${OKTA_LOGIN_URL:-}
+            OKTA_LINK_LOGIN_URL=${OKTA_LINK_LOGIN_URL:-}
+            OKTA_LOGOUT_URL=${OKTA_LOGOUT_URL:-}
+            # work out if we are setting Login/Logout URL's
+            if [[ ! -z ${OKTA_LOGOUT_URL} ]]; then
+                LOGOUT_URL_SET="set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-name/#text 'logout.url'"
+                LOGOUT_URL_SET=$(printf "${LOGOUT_URL_SET}\nset /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-value/#text '${OKTA_LOGOUT_URL}'")
+            fi
+            ;;
+        'confluence')
+            OKTR_SSO_AUTHENTICATOR=${OKTR_SSO_AUTHENTICATOR:-"com.atlassian.confluence.authenticator.okta.OktaConfluenceAuthenticator30"}
+            OKTA_LOGIN_URL_STRATEGY_CLASS=${OKTA_LOGIN_URL_STRATEGY_CLASS:-}
+            OKTA_CONFIG_FILE="${OKTA_CONFIG_FILE:-}"
+            OTKR_SSO_DRIVER_LOCATION="${OTKR_SSO_DRIVER_LOCATION:-}"
+            OKTA_DRIVER_DESTINATION="${OKTA_DRIVER_DESTINATION:-${INSTALL_DIR}/confluence/WEB-INF/lib/}"
+            OKTA_LOGIN_URL=${OKTA_LOGIN_URL:-}
+            OKTA_LINK_LOGIN_URL=${OKTA_LINK_LOGIN_URL:-}
+            OKTA_LOGOUT_URL=${OKTA_LOGOUT_URL:-}
+            # work out if we are setting a login strategy
+            if [[ ! -z ${OKTA_LOGIN_URL_STRATEGY_CLASS} ]]; then
+                LOGIN_URL_STRATEGY_SET="set /files${SERAPH_CONFIG_FILE}/security-config/login-url-strategy/#attribute/class ${OKTA_LOGIN_URL_STRATEGY_CLASS}"
+            fi
+            ;;
+        *)
+            echo "Attempted to set OKTA_SSO for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+
+    if [ -z "${OKTA_CONFIG_FILE}" \
+        -o -z "${OTKR_SSO_DRIVER_LOCATION}" ]; then
+        fatal "
+        OKTA_SSO_ENABLE is set, but one or all of the mandatory variables are not set in:
+        OKTA_CONFIG_FILE
+        OTKR_SSO_DRIVER_LOCATION"
+        exit 51
+    fi
+
+    # work out if we are setting Login/Logout URL's
+    if [[ ! -z ${OKTA_LOGIN_URL} ]]; then
+        LOGIN_URL_SET="set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[1]/param-name/#text 'login.url'"
+        LOGIN_URL_SET=$(printf "${LOGIN_URL_SET}\nset /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[1]/param-value/#text '${OKTA_LOGIN_URL}'")
+    fi
+
+    # work out if we are setting Login/Logout URL's
+    if [[ ! -z ${OKTA_LINK_LOGIN_URL} ]]; then
+        LINK_LOGIN_URL_SET="set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-name/#text 'link.login.url'"
+        LINK_LOGIN_URL_SET=$(printf "${LINK_LOGIN_URL_SET}\nset /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-value/#text '${OKTA_LINK_LOGIN_URL}'")
+    fi
+
+    # attempt to copy the okta driver into the WEB-INF/lib dir
+    if [[ -f ${OTKR_SSO_DRIVER_LOCATION} ]]; then
+        debug "attempting to copy OKTA driver ${OTKR_SSO_DRIVER_LOCATION} into ${OKTA_DRIVER_DESTINATION}"
+        cp ${OTKR_SSO_DRIVER_LOCATION} ${OKTA_DRIVER_DESTINATION}
+        DRIVER_FILENAME=$(basename ${OTKR_SSO_DRIVER_LOCATION})
+        chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${OKTA_DRIVER_DESTINATION}/${DRIVER_FILENAME}"
+    else
+        fatal "Error OKTA driver specified as ${OTKR_SSO_DRIVER_LOCATION} does not exist!"
+        exit 70
+    fi
+    # first replace with a fake authenticator so we can sed a correct close tag into authenticator
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
+load
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class 'FAKE_AUTHENTICATOR'
+save
+print /augeas//error
+EOF
+    # sed in place a correct close tag
+    sed -i 's#<authenticator class="FAKE_AUTHENTICATOR"/>#<authenticator class="FAKE_AUTHENTICATOR"></authenticator>#g' ${SERAPH_CONFIG_FILE}
+
+    #searph-config.xml
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
+load
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${OKTR_SSO_AUTHENTICATOR}
+${LOGIN_URL_STRATEGY_SET}
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/init-param/param-name/#text 'okta.config.file'
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/init-param/param-value/#text ${OKTA_CONFIG_FILE}
+${LOGIN_URL_SET}
+${LINK_LOGIN_URL_SET}
+${LOGOUT_URL_SET}
+save
+print /augeas//error
+EOF
+elif [[ 0 -eq ${OKTA_SSO_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'jira')
+            NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.jira.security.login.JiraSeraphAuthenticator"}
+            NATIVE_LOGIN_URL=${NATIVE_LOGIN_URL:-'/login.jsp?permissionViolation=true&amp;os_destination=${originalurl}&amp;page_caps=${pageCaps}&amp;user_role=${userRole}'}
+            NATIVE_LINK_LOGIN_URL=${NATIVE_LINK_LOGIN_URL:-'/login.jsp?os_destination=${originalurl}'}
+            NATIVE_LOGOUT_URL=${NATIVE_LOGOUT_URL:-"/secure/Logout!default.jspa"}
+            NATIVE_LOGOUT_URL_SET="set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-name/#text 'logout.url'"
+            NATIVE_LOGOUT_URL_SET=$(printf "${NATIVE_LOGOUT_URL_SET}\nset /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-value/#text ${NATIVE_LOGOUT_URL}")
+            ;;
+        'confluence')
+            NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.confluence.user.ConfluenceAuthenticator"}
+            NATIVE_LOGIN_URL=${NATIVE_LOGIN_URL:-'/login.action?os_destination=${originalurl}&amp;permissionViolation=true'}
+            NATIVE_LINK_LOGIN_URL=${NATIVE_LINK_LOGIN_URL:-'/login.action'}
+            NATIVE_LOGOUT_URL_SET=""
+            ;;
+        *)
+            echo "Attempted to disable OKTA SSO for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+
+    # TODO: Need to reset to default
+    debug "OKTA SSO disabled, disabling..."
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
+load
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${NATIVE_AUTHENTICATOR}
+rm /files${SERAPH_CONFIG_FILE}/security-config/authenticator/init-param
+set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[1]/param-name/#text 'login.url'
+set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[1]/param-value/#text ${NATIVE_LOGIN_URL}
+set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-name/#text 'link.login.url'
+set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-value/#text ${NATIVE_LINK_LOGIN_URL}
+${NATIVE_LOGOUT_URL_SET}
+save
+print /augeas//error
+EOF
+else
+    debug "OKTA SSO - IGNORED"
+fi
