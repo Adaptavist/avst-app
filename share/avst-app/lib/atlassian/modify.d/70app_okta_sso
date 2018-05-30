@@ -133,12 +133,14 @@ elif [[ 0 -eq ${OKTA_SSO_ENABLE} ]]; then
             NATIVE_LOGOUT_URL=${NATIVE_LOGOUT_URL:-"/secure/Logout!default.jspa"}
             NATIVE_LOGOUT_URL_SET="set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-name/#text 'logout.url'"
             NATIVE_LOGOUT_URL_SET=$(printf "${NATIVE_LOGOUT_URL_SET}\nset /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[3]/param-value/#text ${NATIVE_LOGOUT_URL}")
+            NATIVE_LOGIN_URL_STRATEGY_SET=""
             ;;
         'confluence')
             NATIVE_AUTHENTICATOR=${NATIVE_AUTHENTICATOR:-"com.atlassian.confluence.user.ConfluenceAuthenticator"}
             NATIVE_LOGIN_URL=${NATIVE_LOGIN_URL:-'/login.action?os_destination=${originalurl}&amp;permissionViolation=true'}
             NATIVE_LINK_LOGIN_URL=${NATIVE_LINK_LOGIN_URL:-'/login.action'}
             NATIVE_LOGOUT_URL_SET=""
+            NATIVE_LOGIN_URL_STRATEGY_SET="rm /files${SERAPH_CONFIG_FILE}/security-config/login-url-strategy"
             ;;
         *)
             echo "Attempted to disable OKTA SSO for PRODUCT: ${PRODUCT} but this is not possible"
@@ -158,6 +160,7 @@ set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[1]/param-v
 set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-name/#text 'link.login.url'
 set /files${SERAPH_CONFIG_FILE}/security-config/parameters/init-param[2]/param-value/#text ${NATIVE_LINK_LOGIN_URL}
 ${NATIVE_LOGOUT_URL_SET}
+${NATIVE_LOGIN_URL_STRATEGY_SET}
 save
 print /augeas//error
 EOF
