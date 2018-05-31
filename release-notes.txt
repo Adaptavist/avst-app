@@ -1,3 +1,8 @@
+Release 0.49, 31 May 2018
+-------------------------
+
+Added Basic support for Synchrony DC
+
 Release 0.48, 28th March 2018
 -----------------------------
 

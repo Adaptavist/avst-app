@@ -1,0 +1,97 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# TODO - add support for other node discovery methods, currently only TCP is supported
+
+SYNCHRONY_START_SCRIPT="${INSTANCE_DIR}/install/start-synchrony.sh"
+SYNCHRONY_STOP_SCRIPT="${INSTANCE_DIR}/install/stop-synchrony.sh"
+
+SYNCHRONY_JAR_PATH=${SYNCHRONY_JAR_PATH:-"${INSTALL_DIR}/packages/synchrony-standalone.jar"}
+
+# validate mandatory general synchrony vars
+if [ -z "${DB_JDBC_URL}" \
+    -o -z "${DB_USERNAME}" \
+    -o -z "${DB_PASSWORD}" \
+    -o -z "${SYNCHRONY_SERVER_IP}" \
+    -o -z "${SYNCHRONY_JAR_PATH}" \
+    -o -z "${SYNCHRONY_URL}" \
+    -o -z "${SYNCHRONY_DRIVER_PATH}" ]; then
+    fatal "
+    one or all of the mandatory variables are not set in:
+    DB_JDBC_URL
+    DB_USERNAME
+    DB_PASSWORD
+    SYNCHRONY_SERVER_IP
+    SYNCHRONY_JAR_PATH
+    SYNCHRONY_URL
+    SYNCHRONY_DRIVER_PATH"
+    exit 52
+fi
+
+
+# modify general synchrony start script (all config for cluster etc is in here)
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${SYNCHRONY_START_SCRIPT}"
+load
+defvar prop /files${SYNCHRONY_START_SCRIPT}
+set  \$prop/SYNCHRONY_HOME "\"${INSTANCE_DIR}/install\""
+set  \$prop/DATABASE_URL "\"${DB_JDBC_URL}"\"
+set  \$prop/DATABASE_USER "\"${DB_USERNAME}"\"
+set  \$prop/DATABASE_PASSWORD "\"${DB_PASSWORD}"\"
+set  \$prop/SERVER_IP "\"${SYNCHRONY_SERVER_IP}"\"
+set  \$prop/SYNCHRONY_JAR_PATH "\"${SYNCHRONY_JAR_PATH}\""
+set  \$prop/SYNCHRONY_URL "\"${SYNCHRONY_URL}"\"
+set  \$prop/DATABASE_DRIVER_PATH "\"${SYNCHRONY_DRIVER_PATH}"\"
+save
+print /augeas//error
+EOF
+
+# add in config for TCP discovery method, more methods coming soon!
+
+# validate mandatory tcp/ip discovery synchrony vars
+if [ -z "${SYNCHRONY_TCPIP_MEMBERS}" ]; then
+    fatal "
+    one or all of the mandatory variables are not set in:
+    SYNCHRONY_TCPIP_MEMBERS"
+    exit 52
+fi
+
+if [[ $(grep '# TCPIP_MEMBERS' ${SYNCHRONY_START_SCRIPT}) ]]; then
+    sed -i 's/# TCPIP_MEMBERS/TCPIP_MEMBERS/' ${SYNCHRONY_START_SCRIPT}
+    sed -i '/TCPIP_MEMBERS=.*/a CLUSTER_JOIN_PROPERTIES=""' ${SYNCHRONY_START_SCRIPT}
+fi
+
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${SYNCHRONY_START_SCRIPT}"
+load
+defvar prop /files${SYNCHRONY_START_SCRIPT}
+set  \$prop/TCPIP_MEMBERS "\"${SYNCHRONY_TCPIP_MEMBERS}\""
+set  \$prop/CLUSTER_JOIN_PROPERTIES '"-Dcluster.join.type=tcpip  -Dcluster.join.tcpip.members=\${TCPIP_MEMBERS}"'
+save
+print /augeas//error
+EOF
+
+# modify synchrony stop script
+augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${SYNCHRONY_STOP_SCRIPT}"
+load
+defvar prop /files${SYNCHRONY_STOP_SCRIPT}
+set  \$prop/SYNCHRONY_HOME "\"${INSTANCE_DIR}/install\""
+save
+print /augeas//error
+EOF

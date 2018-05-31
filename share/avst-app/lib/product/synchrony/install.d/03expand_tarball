@@ -1,0 +1,54 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# NOTE - Synchrony is sourced from the confluence tarball
+
+TARBALL="$PARAMS"
+
+if [[ -z "${TARBALL}" || ! -f "${TARBALL}" ]]; then
+    fatal "synchrony/install.d/03expand_tarball: tarball \"${TARBALL}\" does not exist"
+    exit 20
+fi
+
+# Synchrony < 6.5 does not ship with scripts
+VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '6.4.99' '<' '${VERSION}'" )
+if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+	debug "synchrony/install.d/03expand_tarball: Confluence >=6.5 detected, including synchrony bin"
+    WILDCARDS_TO_EXTRACT="'*/bin/synchrony' '*/synchrony-standalone.jar' '*/postgresql-*.jar'"
+else
+	debug "synchrony/install.d/03expand_tarball: Confluence <6.5 detected, excluding synchrony bin"
+    WILDCARDS_TO_EXTRACT="'*/synchrony-standalone.jar' '*/postgresql-*.jar'"
+
+    # manually add the stop/start scripts that come with later versions of synchrony
+    debug "synchrony/install.d/03expand_tarball: Copying synchrony start/stop scripts"
+    cp "${SHARE_DIR}/scripts/synchrony"/*.sh "${INSTANCE_DIR}/install"
+fi
+
+# extract all files to the root of the install directory
+debug "synchrony/install.d/03expand_tarball:Expanding '${TARBALL}' into '${INSTANCE_DIR}/install'"
+EXTRACT_TARBALL_RESULT=$( run_cmd tar -zxf "${TARBALL}" \
+    --group="${INSTANCE_GROUP}" \
+    --owner="${INSTANCE_USER}" \
+    -C "${INSTANCE_DIR}/install" \
+    --strip-components=3 \
+    --wildcards ${WILDCARDS_TO_EXTRACT} )
+debug "${EXTRACT_TARBALL_RESULT}"
+if [[ "$(get_std_return ${EXTRACT_TARBALL_RESULT})" != "0" ]]; then
+    fatal "synchrony/install.d/03expand_tarball: Error while expanding tarball: $(get_std_out ${EXTRACT_TARBALL_RESULT})"
+    return 32
+fi
+
+run_cmd chown -R "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${INSTANCE_DIR}/install"

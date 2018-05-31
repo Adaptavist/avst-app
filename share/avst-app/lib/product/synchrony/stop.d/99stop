@@ -1,0 +1,37 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if [[ "$(uname)" != "Linux" ]]; then
+    fatal "systemd/stop/stop: Error: unsupported Operating system $(uname)"
+    return 99
+fi
+
+RUN_CMD="su \"${INSTANCE_USER}\" bash -c \"${INSTALL_DIR}/stop-synchrony.sh\""
+
+debug "synchrony/stop/stop: Running: ${RUN_CMD}"
+
+SYNCHRONY_STOP_CMD=$( run_cmd "${RUN_CMD}" )
+debug "${SYNCHRONY_STOP_CMD}"
+
+if [[ "$(get_std_return ${SYNCHRONY_STOP_CMD})" != "0" ]]; then   
+  signal_stop_process "synchrony/stop/stop"
+fi
+
+PID_FILE="${INSTALL_DIR}/synchrony.pid"
+
+# cleanup pid
+if [[ -f ${PID_FILE} ]]; then
+        rm -f ${PID_FILE}
+fi
