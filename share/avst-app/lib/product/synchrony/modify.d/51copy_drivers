@@ -1,0 +1,29 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+DRIVERS_COUNT="${DRIVERS_COUNT:-0}"
+ADDTITIONAL_SEQ=""
+if [[ "${DRIVERS_COUNT}" -gt "0" ]]; then 
+    ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${DRIVERS_COUNT} - 1)))
+    index=1
+    for i in '' ${ADDTITIONAL_SEQ} ; do
+        FILE_PATH=$( eval echo \$"DRIVER_PATH${i}" )
+        if [[ ! -z "${FILE_PATH}" && -f "${FILE_PATH}" ]]; then
+            cp ${FILE_PATH} ${INSTALL_DIR}/lib/.
+            debug "${FILE_PATH} added to ${INSTALL_DIR}/"
+        fi
+    done
+fi
+

@@ -406,6 +406,8 @@ function get_pid () {
         PID=$(pgrep -of "java.*${INSTANCE_NAME}\W")
     elif [ "${PRODUCT}" == "bambo_agent" ]; then
         PID=$(pgrep -of "java.*${INSTANCE_NAME}\W")
+    elif [ "${PRODUCT}" == "synchrony" ]; then
+        PID=$(pgrep -of "java.*${INSTANCE_NAME}\W")
     else
         PID=$(pgrep -nf "^${INSTANCE_NAME}\W")
     fi

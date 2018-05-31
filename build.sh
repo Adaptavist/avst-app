@@ -172,5 +172,10 @@ build-package avst-app-sonarqube \
               "-d avst-app" \
               "Adaptavist application management scripts - SonarQube"
 
+build-package avst-app-synchrony \
+              "share/avst-app/lib/product/synchrony share/avst-app/scripts/synchrony" \
+              "-d avst-app" \
+              "Adaptavist application management scripts - Synchrony"
+
 exit 0
 
