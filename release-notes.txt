@@ -2,6 +2,7 @@ Release 0.49, 31 May 2018
 -------------------------
 
 Added Basic support for Synchrony DC
+Added logic to ensure validation-query-timeout is only set in JIRA dbconfig.xml for MySQL
 
 Release 0.48, 28th March 2018
 -----------------------------
