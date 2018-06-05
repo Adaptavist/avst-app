@@ -1,0 +1,16 @@
+# avst-app - Adaptavist Application - Services
+
+[Unit]
+
+Description=Synchrony (<INSTANCE>)
+After=syslog.target network.target
+
+[Service]
+ExecStart=/usr/bin/avst-app <INSTANCE> start
+ExecStop=/usr/bin/avst-app <INSTANCE> stop
+Type=simple
+Restart=always
+LimitNOFILE=<MAX_OPEN_FILES>
+
+[Install]
+WantedBy=multi-user.target

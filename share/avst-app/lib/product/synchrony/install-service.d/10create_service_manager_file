@@ -1,0 +1,37 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This file ovewrites the one in common/install-service.d!
+
+INIT_HOME="${INIT_HOME:-/etc}"
+SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+SYSTEMD_FILE='synchrony.service'
+if [[ "$(uname)" != "Linux" ]]; then
+    fatal "synchrony/service_manager/create_systemd_file: Error: unsupported Operating system $(uname)"
+    return 99
+fi
+
+(
+    if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]
+    then
+        cd "${SYSTEMD_HOME}"
+        debug "synchrony/service_manager/create_systemd_file: Creating systemd config file '${SYSTEMD_HOME}/${INSTANCE_NAME}.service'"
+        cat "${SHARE_DIR}/systemd/${SYSTEMD_FILE}" | sed "s#<INSTANCE>#${INSTANCE_NAME}#g" | sed "s#<MAX_OPEN_FILES>#${SERVICE_MAX_OPEN_FILES}#g" > "${INSTANCE_NAME}.service"
+    else
+        fatal "Only systems running systemd are supported at the moment"
+        exit 99
+    fi
+)
+
