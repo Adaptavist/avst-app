@@ -100,6 +100,9 @@ do
         fi
         FILELIST_RPM=$( echo *.rpm )
         ;;
+    --maven-path)
+        MVN_PATH=$2
+        ;;
     --*)
         echo "Invalid option: '$opt'"
         usage
@@ -112,6 +115,11 @@ do
   esac
   shift # do this after the case statements, so the first param is not lost!
 done
+
+# ensure maven is set, if not default
+if [[ -z ${MVN_PATH:-} ]]; then
+    MVN_PATH="mvn"
+fi
 
 if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSION:-}" ]]; then
     
@@ -139,7 +147,7 @@ if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSIO
     echo "Publishing \"${FILE}\" to Nexus"
     MVN_DESC=$( dpkg --info ${FILE} | fgrep Description | sed -e's/[^:]*: //' )
     MVN_ARTIFACT=$( echo ${FILE} | sed -e's/_.*//' )
-    CMD="mvn org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
+    CMD="${MVN_PATH} org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
                          -Durl=${MVN_URL}/${MVN_REPO} \
                          -DrepositoryId=${MVN_REPOID} \
                          -Dfile=${FILE} \
@@ -176,7 +184,7 @@ if [[ ( ! -z "${FILELIST_DEB:-}" || ! -z "${FILELIST_RPM:-}" ) && ! -z "${VERSIO
     echo "Publishing \"${FILE}\" to Nexus"
     MVN_DESC=$( rpm -q -i -p ${FILE} | fgrep Summary | sed -e's/[^:]*: //' )
     MVN_ARTIFACT=$( echo ${FILE} | sed -e's/_.*//' )
-    CMD="mvn org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
+    CMD="${MVN_PATH} org.apache.maven.plugins:maven-deploy-plugin:2.8.1:deploy-file \
                          -Durl=${MVN_URL}/${MVN_REPO} \
                          -DrepositoryId=${MVN_REPOID} \
                          -Dfile=${FILE} \
