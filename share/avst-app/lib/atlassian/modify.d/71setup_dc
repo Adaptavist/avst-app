@@ -1,0 +1,183 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Possible values are:
+#  0 - Disabled i.e. actively disable DC
+#  1 - Enabled i.e. enable DC
+# -1 - Ignore i.e. do nothing
+
+DC_ENABLE="${DC_ENABLE:--1}"
+
+# TODO: Support more apps 
+
+# function to add "confluence-configuration/properties/property/" attributes into confluence.cfg.xml before attempting to modify the values
+# TODO: get this addition done "properly" in augeas
+function add_confluence_config_attrib() {
+    FILE=$2
+    ATTRIBUTE=$1
+    findCommand="grep 'name=\"${ATTRIBUTE}\"' '${FILE}'"
+    
+    # check if the attribute is present, if not add it
+    if [[ ! $( eval "${findCommand}") ]]; then
+        sed -i "s#</properties>#    <property name=\"${ATTRIBUTE}\">TODO</property>\n</properties>#" "${FILE}"
+        debug "atlassian/modify/setup_dc: confluence-configuration/properties/property/${ATTRIBUTE} is missing, attempting to add it"
+    else
+        debug "atlassian/modify/setup_dc: confluence-configuration/properties/property/${ATTRIBUTE} is present, skipping addition"
+    fi
+}
+
+if [[ 1 -eq ${DC_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'jira')
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/cluster.properties"
+            CLUSTER_NODE_ID=${CLUSTER_NODE_ID:-}
+            CLUSTER_SHARED_HOME=${CLUSTER_SHARED_HOME:-}
+            CLUSTER_NODE_HOSTNAME=${CLUSTER_NODE_HOSTNAME:-}
+            if [ -z "${CLUSTER_CONFIG_FILE}" \
+                -o -z "${CLUSTER_NODE_ID}" \
+                -o -z "${CLUSTER_SHARED_HOME}" \
+                -o -z "${CLUSTER_NODE_HOSTNAME}" ]; then
+                fatal "
+                DC_ENABLE is set, but one or all of the mandatory variables are not set in:
+                CLUSTER_CONFIG_FILE
+                CLUSTER_NODE_ID
+                CLUSTER_SHARED_HOME
+                CLUSTER_NODE_HOSTNAME"
+                exit 51
+            fi
+
+            # work out if we are setting node "hostname"
+            if [[ ! -z ${CLUSTER_NODE_HOSTNAME} ]]; then
+                HOSTNAME_SET="set /files${CLUSTER_CONFIG_FILE}/ehcache.listener.hostName ${CLUSTER_NODE_HOSTNAME}"
+            else
+                HOSTNAME_SET=""
+            fi
+  
+            # config cluster.properites
+            touch "${CLUSTER_CONFIG_FILE}"
+            chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${CLUSTER_CONFIG_FILE}"
+            debug "atlassian/modify/setup_dc: Attempting to create JIRA cluster.properties"
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${CLUSTER_CONFIG_FILE}"
+load
+set /files${CLUSTER_CONFIG_FILE}/jira.node.id ${CLUSTER_NODE_ID}
+set /files${CLUSTER_CONFIG_FILE}/jira.shared.home ${CLUSTER_SHARED_HOME}
+${HOSTNAME_SET}
+save
+print /augeas//error
+EOF
+            ;;
+        'confluence')
+            # TODO: support more joining methods, currently only TCP/IP (list of nodes) is supported
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/confluence.cfg.xml"
+            CLUSTER_NODE_INTERFACE=${CLUSTER_NODE_INTERFACE:-"eth0"}
+            CLUSTER_SHARED_HOME=${CLUSTER_SHARED_HOME:-}
+            CLUSTER_NAME=${CLUSTER_NAME:-}
+            CLUSTER_PEERS=${CLUSTER_PEERS:-}
+            CLUSTER_NODE_ID=${CLUSTER_NODE_ID:-}
+            if [ -z "${CLUSTER_CONFIG_FILE}" \
+                -o -z "${CLUSTER_NODE_INTERFACE}" \
+                -o -z "${CLUSTER_SHARED_HOME}" \
+                -o -z "${CLUSTER_NAME}" \
+                -o -z "${CLUSTER_PEERS}" ]; then
+                fatal "
+                DC_ENABLE is set, but one or all of the mandatory variables are not set in:
+                CLUSTER_CONFIG_FILE
+                CLUSTER_NODE_ADAPTER
+                CLUSTER_SHARED_HOME
+                CLUSTER_NAME
+                CLUSTER_PEERS"
+                exit 51
+            fi
+
+            # work out if we are setting node "ID"
+            if [[ ! -z ${CLUSTER_NODE_ID} ]]; then
+                add_confluence_config_attrib "confluence.cluster.node.name" "${CLUSTER_CONFIG_FILE}"
+                NODE_ID_SET="set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.node.name']/#text "${CLUSTER_NODE_ID}""
+            else
+                NODE_ID_SET=""
+            fi
+
+            debug "atlassian/modify/setup_dc: Attempting to modify confluence confluence.cfg.xml for DC"
+
+            # TODO - do this in augeas!
+            add_confluence_config_attrib "confluence.cluster" "${CLUSTER_CONFIG_FILE}"
+            add_confluence_config_attrib "confluence.cluster.home" "${CLUSTER_CONFIG_FILE}"
+            add_confluence_config_attrib "confluence.cluster.interface" "${CLUSTER_CONFIG_FILE}"
+            add_confluence_config_attrib "confluence.cluster.join.type" "${CLUSTER_CONFIG_FILE}"
+            add_confluence_config_attrib "confluence.cluster.name" "${CLUSTER_CONFIG_FILE}"
+            add_confluence_config_attrib "confluence.cluster.peers" "${CLUSTER_CONFIG_FILE}"
+
+            # set confluence config for DC
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${CLUSTER_CONFIG_FILE}"
+load
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/setupType/#text "cluster"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='synchrony.btf']/#text "false"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster']/#text "true"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.home']/#text "${CLUSTER_SHARED_HOME}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.interface']/#text "${CLUSTER_NODE_INTERFACE}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.join.type']/#text "tcp_ip"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/#text "${CLUSTER_NAME}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/#text "${CLUSTER_PEERS}"
+${NODE_ID_SET}
+save
+print /augeas//error
+EOF
+            ;;
+        *)
+            echo "Attempted to add DC Configuration for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+
+    # TODO Validation
+
+elif [[ 0 -eq ${DC_ENABLE} ]]; then
+    case ${PRODUCT} in
+        'jira')
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/cluster.properties"
+            debug "atlassian/modify/setup_dc: Attempting to remove JIRA cluster.properties"
+            # remove cluster config
+            rm -f ${CLUSTER_CONFIG_FILE}
+            ;;
+        'confluence')
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/confluence.cfg.xml"
+            debug "atlassian/modify/setup_dc: Attempting to modify confluence confluence.cfg.xml for DC"
+
+            # remove confluence dc config
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${CLUSTER_CONFIG_FILE}"
+load
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/setupType/#text "custom"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='synchrony.btf']/#text "true"
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.home']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.interface']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.join.type']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.node.name']/
+save
+print /augeas//error
+EOF
+            ;;
+        *)
+            echo "Attempted to remove DC Configuration for PRODUCT: ${PRODUCT} but this is not possible"
+            exit 50
+    esac
+fi
