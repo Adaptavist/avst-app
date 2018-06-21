@@ -33,10 +33,10 @@ LOGIN_URL_STRATEGY_SET=""
 if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
     case ${PRODUCT} in
         'jira')
-            OKTR_SSO_AUTHENTICATOR=${OKTR_SSO_AUTHENTICATOR:-"com.atlassian.jira.authenticator.okta.OktaJiraAuthenticator30"}
+            OKTA_SSO_AUTHENTICATOR=${OKTA_SSO_AUTHENTICATOR:-"com.atlassian.jira.authenticator.okta.OktaJiraAuthenticator30"}
             OKTA_LOGIN_URL_STRATEGY_CLASS=${OKTA_LOGIN_URL_STRATEGY_CLASS:-}
             OKTA_CONFIG_FILE="${OKTA_CONFIG_FILE:-}"
-            OTKR_SSO_DRIVER_LOCATION="${OTKR_SSO_DRIVER_LOCATION:-}"
+            OKTA_SSO_DRIVER_LOCATION="${OKTA_SSO_DRIVER_LOCATION:-}"
             OKTA_DRIVER_DESTINATION="${OKTA_DRIVER_DESTINATION:-${INSTALL_DIR}/atlassian-jira/WEB-INF/lib}"
             OKTA_LOGIN_URL=${OKTA_LOGIN_URL:-}
             OKTA_LINK_LOGIN_URL=${OKTA_LINK_LOGIN_URL:-}
@@ -48,10 +48,10 @@ if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
             fi
             ;;
         'confluence')
-            OKTR_SSO_AUTHENTICATOR=${OKTR_SSO_AUTHENTICATOR:-"com.atlassian.confluence.authenticator.okta.OktaConfluenceAuthenticator30"}
+            OKTA_SSO_AUTHENTICATOR=${OKTA_SSO_AUTHENTICATOR:-"com.atlassian.confluence.authenticator.okta.OktaConfluenceAuthenticator30"}
             OKTA_LOGIN_URL_STRATEGY_CLASS=${OKTA_LOGIN_URL_STRATEGY_CLASS:-}
             OKTA_CONFIG_FILE="${OKTA_CONFIG_FILE:-}"
-            OTKR_SSO_DRIVER_LOCATION="${OTKR_SSO_DRIVER_LOCATION:-}"
+            OKTA_SSO_DRIVER_LOCATION="${OKTA_SSO_DRIVER_LOCATION:-}"
             OKTA_DRIVER_DESTINATION="${OKTA_DRIVER_DESTINATION:-${INSTALL_DIR}/confluence/WEB-INF/lib/}"
             OKTA_LOGIN_URL=${OKTA_LOGIN_URL:-}
             OKTA_LINK_LOGIN_URL=${OKTA_LINK_LOGIN_URL:-}
@@ -67,11 +67,11 @@ if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
     esac
 
     if [ -z "${OKTA_CONFIG_FILE}" \
-        -o -z "${OTKR_SSO_DRIVER_LOCATION}" ]; then
+        -o -z "${OKTA_SSO_DRIVER_LOCATION}" ]; then
         fatal "
         OKTA_SSO_ENABLE is set, but one or all of the mandatory variables are not set in:
         OKTA_CONFIG_FILE
-        OTKR_SSO_DRIVER_LOCATION"
+        OKTA_SSO_DRIVER_LOCATION"
         exit 51
     fi
 
@@ -88,13 +88,13 @@ if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
     fi
 
     # attempt to copy the okta driver into the WEB-INF/lib dir
-    if [[ -f ${OTKR_SSO_DRIVER_LOCATION} ]]; then
-        debug "attempting to copy OKTA driver ${OTKR_SSO_DRIVER_LOCATION} into ${OKTA_DRIVER_DESTINATION}"
-        cp ${OTKR_SSO_DRIVER_LOCATION} ${OKTA_DRIVER_DESTINATION}
-        DRIVER_FILENAME=$(basename ${OTKR_SSO_DRIVER_LOCATION})
+    if [[ -f ${OKTA_SSO_DRIVER_LOCATION} ]]; then
+        debug "attempting to copy OKTA driver ${OKTA_SSO_DRIVER_LOCATION} into ${OKTA_DRIVER_DESTINATION}"
+        cp ${OKTA_SSO_DRIVER_LOCATION} ${OKTA_DRIVER_DESTINATION}
+        DRIVER_FILENAME=$(basename ${OKTA_SSO_DRIVER_LOCATION})
         chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${OKTA_DRIVER_DESTINATION}/${DRIVER_FILENAME}"
     else
-        fatal "Error OKTA driver specified as ${OTKR_SSO_DRIVER_LOCATION} does not exist!"
+        fatal "Error OKTA driver specified as ${OKTA_SSO_DRIVER_LOCATION} does not exist!"
         exit 70
     fi
     # first replace with a fake authenticator so we can sed a correct close tag into authenticator
@@ -114,7 +114,7 @@ EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${SERAPH_CONFIG_FILE}"
 load
-set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${OKTR_SSO_AUTHENTICATOR}
+set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/#attribute/class ${OKTA_SSO_AUTHENTICATOR}
 ${LOGIN_URL_STRATEGY_SET}
 set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/init-param/param-name/#text 'okta.config.file'
 set /files${SERAPH_CONFIG_FILE}/security-config/authenticator/init-param/param-value/#text ${OKTA_CONFIG_FILE}

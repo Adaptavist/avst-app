@@ -1,7 +1,8 @@
-Release 0.50, 22nd June 2018
+Release 0.50, 21nd June 2018
 ----------------------------
 
 Basic support for Confluence and JIRA DC
+Basic OKTA plugin support for Confluence and JIRA
 
 Release 0.49, 5th June 2018
 ---------------------------
