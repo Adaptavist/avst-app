@@ -1,4 +1,4 @@
-Release 0.50, 21nd June 2018
+Release 0.50, 21st June 2018
 ----------------------------
 
 Basic support for Confluence and JIRA DC
