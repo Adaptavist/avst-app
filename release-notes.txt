@@ -1,3 +1,8 @@
+Release 0.51, 22st June 2018
+----------------------------
+
+Fixed ownership for downloaded bamboo agent jar
+
 Release 0.50, 21st June 2018
 ----------------------------
 
