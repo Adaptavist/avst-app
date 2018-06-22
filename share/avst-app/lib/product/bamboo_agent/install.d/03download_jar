@@ -26,4 +26,5 @@ if [[ "$(get_std_return ${WGET_CMD})" != "0" ]]; then
 	fatal "install/download_jar: invalid Bamboo server specified: \"${BAMBOO_SERVER}\" - could not retrieve installation JAR"
     exit 20
 fi
+chown "${INSTANCE_USER}":"${INSTANCE_GROUP}" "${INSTALL_DIR}/bamboo-agent-installer.jar"
 
