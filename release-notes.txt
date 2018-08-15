@@ -58,4 +58,3 @@ Release 0.43, 19th September 2017
 
 Added functionality to copy items from the old FeCru install dir into the new one, this is needed
 when the FeCru install directory is also the active 'home' directory
-
