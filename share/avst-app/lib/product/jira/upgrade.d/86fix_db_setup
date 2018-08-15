@@ -20,6 +20,15 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     
 sed -i 's/=storage_engine=/=default_storage_engine=/' "${JIRA_XML_FILE}" 
 
+  # if the DB is mysql add validation-query-timeout, if not do not
+  if [[ "${DB_TYPE}" == "mysql" ]]; then
+    debug "jira/upgrade/fix_db_setup: MySQL detected, setting validation-query-timeout"
+    VAL_QUERY_TIMEOUT_SET="set \$datasources/validation-query-timeout/#text \"${DB_VALIDATION_QUERY_TIMEOUT:-3}\"" 
+  else
+    debug "jira/upgrade/fix_db_setup: Non MySQL detected, skipping validation-query-timeout"
+    VAL_QUERY_TIMEOUT_SET=""
+  fi
+
     augtool -LA -e <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${JIRA_XML_FILE}"
@@ -40,7 +49,7 @@ set \$datasources/validation-query/#text "${DB_VALIDATION_QUERY:-select 1}"
 set \$datasources/min-evictable-idle-time-millis/#text "${DB_MIN_EVIDENCE_IDLE_TIME_MILLIS:-60000}"
 set \$datasources/time-between-eviction-runs-millis/#text "${DB_TIME_BETWEEN_EVICTION_RUNS_MILLIS:-300000}"
 set \$datasources/pool-test-while-idle/#text "${DB_POOL_TEST_WHILE_IDLE:-true}"
-set \$datasources/validation-query-timeout/#text "${DB_VALIDATION_QUERY_TIMEOUT:-3}"
+${VAL_QUERY_TIMEOUT_SET}
 save
 print /augeas//error
 EOF

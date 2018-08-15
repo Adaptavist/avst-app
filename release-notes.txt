@@ -1,3 +1,14 @@
+Release 0.52, 15th August 2018
+------------------------------
+
+Added logic to ensure validation-query-timeout is only set in JIRA dbconfig.xml for MySQL, 
+previous added in 0.48 but subsequently removed by mistake
+
+Release 0.51, 22st June 2018
+----------------------------
+
+Fixed ownership for downloaded bamboo agent jar
+
 Release 0.50, 21st June 2018
 ----------------------------
 
@@ -47,3 +58,4 @@ Release 0.43, 19th September 2017
 
 Added functionality to copy items from the old FeCru install dir into the new one, this is needed
 when the FeCru install directory is also the active 'home' directory
+
