@@ -1,3 +1,9 @@
+Release 0.52, 29th August 2018
+------------------------------
+
+Added logic to ensure validation-query-timeout is only set in JIRA dbconfig.xml for MySQL, 
+previous added in 0.48 but subsequently removed by mistake
+
 Release 0.51, 22st June 2018
 ----------------------------
 
