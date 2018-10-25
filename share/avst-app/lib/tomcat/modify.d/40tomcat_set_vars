@@ -134,6 +134,8 @@ set \$service/Connector[${index}]/#attribute/minSpareThreads ${MIN_SPARE_THREADS
 set \$service/Connector[${index}]/#attribute/redirectPort 8443\n\
 set \$service/Connector[${index}]/#attribute/useBodyEncodingForURI true\n\
 set \$service/Connector[${index}]/#attribute/URIEncoding UTF-8\n\
+set \$service/Connector[${index}]/#attribute/relaxedPathChars []|\n\
+set \$service/Connector[${index}]/#attribute/relaxedQueryChars []|{}^&#x5c;&#x60;&quot;&lt;&gt;\n\
 set \$service/Connector[${index}]/#attribute/server Apache")
 
         #deal with content compressions options if set
