@@ -22,13 +22,13 @@ if [[ -f "${INSTANCE_DIR}/.version" ]]; then
 
     # if backup of this version already exists replace it with newer one
     if [[ -d "${INSTALL_DIR}_${OLD_VERSION}" && -d "${INSTALL_DIR}" ]]; then
-        debug "Backup of version ${OLD_VERSION} already exists. Removing old backup"
-        rm -rf "${INSTALL_DIR}_${OLD_VERSION}"
+        fatal "Backup of Install directory (${INSTALL_DIR}/${OLD_VERSION}) already exists. Please investigate this and deal with before attempting upgrade again"
+        exit 77
     fi
     # if backup of this version already exists replace it with newer one
     if [[ -d "${HOME_DIR}_${OLD_VERSION}" && -d "${HOME_DIR}" ]]; then
-        debug "Backup of version ${OLD_VERSION} already exists. Removing old backup"
-        rm -rf "${HOME_DIR}_${OLD_VERSION}"
+        fatal "Backup of Home directory (${HOME_DIR}/${OLD_VERSION}) already exists. Please investigate this and deal with before attempting upgrade again"
+        exit 77
     fi
     mv "${INSTALL_DIR}" "${INSTALL_DIR}_${OLD_VERSION}"
     mv "${HOME_DIR}" "${HOME_DIR}_${OLD_VERSION}"
