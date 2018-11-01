@@ -1,3 +1,9 @@
+Release 0.53, 1st November 2018
+------------------------------
+
+Changed login for pre upgrade folder renames, now if the rename target exists the code will exit 
+instead of deleting the rename target
+
 Release 0.52, 29th August 2018
 ------------------------------
 
