@@ -1,3 +1,16 @@
+Release 0.54, 1st November 2018
+------------------------------
+
+Changed logic for pre upgrade folder renames, now if the rename target exists the code will exit 
+instead of deleting the rename target
+
+Release 0.53, 25th Octoberr 2018
+------------------------------
+
+Added Connector attributes required by the latest jira:
+* relaxedPathChars
+* relaxedQueryChars
+
 Release 0.52, 29th August 2018
 ------------------------------
 
