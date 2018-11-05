@@ -22,11 +22,27 @@ if [[ "$(get_std_return ${RESULT_INSTALL_AVST_APP_CMD})" != "0" ]]; then
     fatal "common/upgrade/install_new_version: Failed while installing, check logs for more info: $(get_std_out ${RESULT_INSTALL_AVST_APP_CMD})"
     return 35
 fi
+
 # home_dir after install must be empty, files are provided in modify stage
-# we can remove it just in case, this is here since install checks and creates home_dir
-rm -rf "${HOME_DIR}"
-# move backedup config files to new home_dir
-mv "${HOME_DIR}_${OLD_VERSION}" "${HOME_DIR}"
+# validate that it exists and is empty
+if [[ -d "${HOME_DIR}" ]]; then
+	if [[ $(ls -A "${HOME_DIR}" | wc -l) -eq 0 ]]; then
+        rm -rf "${HOME_DIR}"
+    else
+        fatal "common/upgrade/install_new_version: Expected temp home dir (${HOME_DIR}) to be empty.\nReal home dir should have been renamed to ${HOME_DIR}_${OLD_VERSION}\nTemp home directory is not empty, aborting, please investigate and correct this issue"
+        exit 78
+    fi
+fi
+
+# check that the renamed home dir exists
+if [[ -d "${HOME_DIR}_${OLD_VERSION}" ]]; then
+    # move backedup config files to new home_dir
+    mv "${HOME_DIR}_${OLD_VERSION}" "${HOME_DIR}"
+else
+	# if there is no renamed home dir inform the user and exit
+	fatal "common/upgrade/install_new_version: Could not find renamed home directory to reinstate"
+	exit 79
+fi
 # apply modifications
 RESULT_MODIFY_AVST_APP_CMD=$(run_cmd avst-app "${DEBUG_OPTION:-}" "${INSTANCE_NAME}" modify)
 debug "${RESULT_MODIFY_AVST_APP_CMD}"
