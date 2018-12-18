@@ -127,7 +127,6 @@ set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${CLUSTER_CONFIG_FILE}"
 load
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/setupType/#text "cluster"
-set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='synchrony.btf']/#text "false"
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster']/#text "true"
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.home']/#text "${CLUSTER_SHARED_HOME}"
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.interface']/#text "${CLUSTER_NODE_INTERFACE}"
