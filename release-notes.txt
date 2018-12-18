@@ -1,16 +1,22 @@
+Release 0.56, 18th December 2018
+--------------------------------
+
+Removed code that sets 'synchrony.btf' value in confluence.cfg.xml for Data Center, as this was 
+breaking newer versions of Confluence
+
 Release 0.55, 5st November 2018
-------------------------------
+-------------------------------
 
 Added additional protection around accidentally deleting renamed home directory during upgrade process
 
 Release 0.54, 1st November 2018
-------------------------------
+-------------------------------
 
 Changed logic for pre upgrade folder renames, now if the rename target exists the code will exit 
 instead of deleting the rename target
 
 Release 0.53, 25th Octoberr 2018
-------------------------------
+-------------------------------
 
 Added Connector attributes required by the latest jira:
 * relaxedPathChars
