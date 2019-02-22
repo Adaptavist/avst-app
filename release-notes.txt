@@ -1,3 +1,9 @@
+Release 0.57, 22 Febuary 2019
+-----------------------------
+
+Fixed logic to create mutliple resources in tomcat server.xml
+Added logic to allow the setting of tomcat resource type "javax.mail.Session" as well as the default "javax.transaction.UserTransaction"
+
 Release 0.56, 18th December 2018
 --------------------------------
 

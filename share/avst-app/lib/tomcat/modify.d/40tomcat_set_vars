@@ -163,7 +163,7 @@ set \$service/Connector[${index}]/#attribute/server Apache")
         TOMCAT_RESOURCE_COUNT="${TOMCAT_RESOURCE_COUNT:-0}"
         ADDTITIONAL_SEQ=""
         [[ "${TOMCAT_RESOURCE_COUNT}" -gt "1" ]] && \
-            ADDTITIONAL_SEQ=$(seq -f "_%g" 0 $((${TOMCAT_RESOURCE_COUNT} - 1)) | tail +3)
+            ADDTITIONAL_SEQ=$(seq -f "_%g" 1 $((${TOMCAT_RESOURCE_COUNT} - 1)))
 
         index=1
         for i in '' ${ADDTITIONAL_SEQ} ; do
@@ -175,6 +175,13 @@ set \$service/Connector[${index}]/#attribute/server Apache")
             TOMCAT_RESOUTCE_TYPE=$( eval echo \$"TOMCAT_RESOUTCE_TYPE${i}" )
             TOMCAT_RESOURCE_FACTORY=$( eval echo \$"TOMCAT_RESOURCE_FACTORY${i}" )
             TOMCAT_RESOURCE_JOTM_TIMEOUT=$( eval echo \$"TOMCAT_RESOURCE_JOTM_TIMEOUT${i}" )
+            TOMCAT_RESOURCE_SMTP_HOST=$( eval echo \$"TOMCAT_RESOURCE_SMTP_HOST${i}" )
+            TOMCAT_RESOURCE_SMTP_PORT=$( eval echo \$"TOMCAT_RESOURCE_SMTP_PORT${i}" )
+            TOMCAT_RESOURCE_SMTP_AUTH=$( eval echo \$"TOMCAT_RESOURCE_SMTP_AUTH${i}" )
+            TOMCAT_RESOURCE_SMTP_USER=$( eval echo \$"TOMCAT_RESOURCE_SMTP_USER${i}" )
+            TOMCAT_RESOURCE_SMTP_PASS=$( eval echo \$"TOMCAT_RESOURCE_SMTP_PASS${i}" )
+            TOMCAT_RESOURCE_SMTP_STARTTLS=$( eval echo \$"TOMCAT_RESOURCE_SMTP_STARTTLS${i}" )
+            TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL=$( eval echo \$"TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL${i}" )
             # Re-enable variable checking
             set -u
 
@@ -183,8 +190,27 @@ set \$service/Connector[${index}]/#attribute/server Apache")
             add_or_remove_connector "Engine/Host/Context/Resource" $index "name" "${TOMCAT_RESOURCE_NAME}"
             add_or_remove_connector "Engine/Host/Context/Resource" $index "auth" "${TOMCAT_RESOURCE_AUTH}"
             add_or_remove_connector "Engine/Host/Context/Resource" $index "type" "${TOMCAT_RESOUTCE_TYPE}"
-            add_or_remove_connector "Engine/Host/Context/Resource" $index "factory" "${TOMCAT_RESOURCE_FACTORY}"
-            add_or_remove_connector "Engine/Host/Context/Resource" $index "jotm.timeout" "${TOMCAT_RESOURCE_JOTM_TIMEOUT}"
+            # if this is a UserTransaction type set values
+            if [[ "${TOMCAT_RESOUTCE_TYPE}" == "javax.transaction.UserTransaction" ]]; then
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "factory" "${TOMCAT_RESOURCE_FACTORY}"
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "jotm.timeout" "${TOMCAT_RESOURCE_JOTM_TIMEOUT}"
+            # if this is a javax.mail.Session type set values
+            elif [[ "${TOMCAT_RESOUTCE_TYPE}" == "javax.mail.Session" ]]; then
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.host" "${TOMCAT_RESOURCE_SMTP_HOST}"
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.port" "${TOMCAT_RESOURCE_SMTP_PORT}"
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.auth" "${TOMCAT_RESOURCE_SMTP_AUTH}"
+                # if there is a user set the value
+                if [[ ! -z ${TOMCAT_RESOURCE_SMTP_USER} ]]; then
+                    add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.user" "${TOMCAT_RESOURCE_SMTP_USER}"
+                fi
+                # if there is a password set the value
+                if [[ ! -z ${TOMCAT_RESOURCE_SMTP_PASS} ]]; then
+                    add_or_remove_connector "Engine/Host/Context/Resource" $index "password" "${TOMCAT_RESOURCE_SMTP_PASS}"
+                fi
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.starttls.enable" "${TOMCAT_RESOURCE_SMTP_STARTTLS}"
+                add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.transport.protocol" "${TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL}"
+
+            fi
             
             index=$(( $index+1 ))
         done
@@ -237,4 +263,6 @@ save
 print /augeas//error
 
 EOF
+    # fix for any characters that had percentage signs in them
+    sed -i 's/__PERCENTAGE_SIGN/\%/g' ${SERVER_XML_FILE}
 fi
