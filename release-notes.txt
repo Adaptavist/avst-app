@@ -1,3 +1,9 @@
+Release 0.58, 29 Febuary 2019
+-----------------------------
+
+Added logic to support OpenJDK (previously threw an fatal error) but print a warning to check compatability
+
+
 Release 0.57, 22 Febuary 2019
 -----------------------------
 
