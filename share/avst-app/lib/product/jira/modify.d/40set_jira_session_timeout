@@ -1,0 +1,40 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+WEB_XML_FILE="${INSTALL_DIR}/atlassian-jira/WEB-INF/web.xml"
+
+
+# check to see if we are modifying the app timeout as well as tomcat
+if [[ ${MANAGE_TOMCAT_AND_APP_SESSION_TIMEOUT:-0} -eq 0 ]]; then
+    debug "jira/modify/set_session_timeout: skipping app timeout config as flag not set"
+else
+    [[ ! -r ${WEB_XML_FILE} ]] && \
+        fatal "jira/modify/set_session_timeout: Could not find web.xml" && \
+        exit 1
+
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${WEB_XML_FILE}"
+load
+defvar web_xml "/files/${WEB_XML_FILE}"
+defvar session \$web_xml/web-app/session-config
+
+set \$session/session-timeout/#text ${TOMCAT_SESSION_TIMEOUT:-300}
+
+save
+print /augeas//error
+
+EOF
+fi
