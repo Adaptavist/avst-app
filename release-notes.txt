@@ -1,3 +1,13 @@
+Release 0.59, 8th March 2019
+----------------------------
+
+Modified the tomcat set timeout logic to also manage the app timeout in the Jira, Confluence and Bamboo web.xml files, 
+if requested to do so.  The following new parameters are introduced:
+
+MANAGE_TOMCAT_AND_APP_SESSION_TIMEOUT - falg to determin if app web.xml is modified (0=no, 1=yes)
+APP_SESSION_TIMEOUT - timeout for the app web.xml, if not set defaults to TOMCAT_SESSION_TIMEOUT (or current app default if not set)
+
+
 Release 0.58, 29 Febuary 2019
 -----------------------------
 
