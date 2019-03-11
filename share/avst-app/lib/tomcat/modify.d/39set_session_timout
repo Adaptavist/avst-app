@@ -13,16 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# define the tomcat web.xml 
 WEB_XML_FILE="${TOMCAT_DIR}/conf/web.xml"
 
 # if the product is bitbucket version 5 or above do not run
 if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
     debug "tomcat/modify/set_session_timeout: skipping as bitbucket >= 5 does not use web.xml for session timeout"
 else
+    # modify the tomcat web.xml
     [[ ! -r ${WEB_XML_FILE} ]] && \
-        fatal "tomcat/modify/set_session_timeout: Could not find web.xml" && \
+        fatal "tomcat/modify/set_session_timeout: Could not find tomcat web.xml" && \
         exit 1
 
+    debug "tomcat/modify/set_session_timeout: Modifying file ${WEB_XML_FILE}"
     augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${WEB_XML_FILE}"
@@ -34,6 +37,58 @@ set \$session/session-timeout/#text ${TOMCAT_SESSION_TIMEOUT:-30}
 
 save
 print /augeas//error
-
 EOF
+	# if we are not managing the app web.xml in addition to the tomcat one inform the user
+    if [[ ${MANAGE_TOMCAT_AND_APP_SESSION_TIMEOUT:-0} -eq 0 ]]; then
+        debug "tomcat/modify/set_session_timeout: skipping app timeout config as flag not set, only tomcat timeout will be set"
+    else
+    	# if we are managing the app web.xml define the filepath dependant on the application type
+        case "${PRODUCT}" in
+            "jira")
+                APP_WEB_XML_FILE="${INSTALL_DIR}/atlassian-jira/WEB-INF/web.xml"
+                DEFAULT_APP_TIMEOUT=300
+                ;;
+            "confluence")
+                APP_WEB_XML_FILE="${INSTALL_DIR}/confluence/WEB-INF/web.xml"
+                DEFAULT_APP_TIMEOUT=60
+                ;;
+            "bamboo")
+                APP_WEB_XML_FILE="${INSTALL_DIR}/atlassian-bamboo/WEB-INF/web.xml"
+                DEFAULT_APP_TIMEOUT=30
+                ;;
+        esac
+
+        # work out the session timeout for the app if the user has not set a specific one
+        if [[ -z "${APP_SESSION_TIMEOUT:-}" ]]; then
+            if [[ -z "${TOMCAT_SESSION_TIMEOUT:-}" ]]; then
+            	# if the user has NOT specified an app timeout or tomcat timeout then default to the default app timeout
+                APP_SESSION_TIMEOUT="${DEFAULT_APP_TIMEOUT}"
+            else
+            	# if the user has not set a ap timeout but HAS specified a tomcat timeout use that
+            	APP_SESSION_TIMEOUT="${TOMCAT_SESSION_TIMEOUT}"
+            fi
+        fi
+        
+        # modify the app web.xml
+        if [[ ! -z "${APP_WEB_XML_FILE:-}" ]]; then
+            [[ ! -r ${APP_WEB_XML_FILE} ]] && \
+            fatal "tomcat/modify/set_session_timeout: Could not find application web.xml" && \
+            exit 1
+
+
+        	debug "tomcat/modify/set_session_timeout: Modifying file ${APP_WEB_XML_FILE}"
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${APP_WEB_XML_FILE}"
+load
+defvar web_xml "/files/${APP_WEB_XML_FILE}"
+defvar session \$web_xml/web-app/session-config
+
+set \$session/session-timeout/#text ${APP_SESSION_TIMEOUT}
+
+save
+print /augeas//error
+EOF
+        fi
+    fi
 fi
