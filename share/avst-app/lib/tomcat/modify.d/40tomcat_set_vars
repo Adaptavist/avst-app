@@ -35,6 +35,7 @@ else
     MAX_THREADS="${MAX_THREADS:-150}"
     MAX_SPARE_THREADS="${MAX_SPARE_THREADS:-75}"
     MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
+    USE_BODY_ENCODING_FOR_URI="${USE_BODY_ENCODING_FOR_URI:-true}"
     # take an index, attribute and value and add the set or rm to the
     # AUGEAS_DOC variable building the document to be applied.
     #
@@ -110,6 +111,8 @@ set \$service/$node[${index}]/#attribute/${attribute} ${value}")
         MAX_SPARE_THREADS_FOR_CONNECTOR=${MAX_SPARE_THREADS_FOR_CONNECTOR:-$MAX_SPARE_THREADS}
         MIN_SPARE_THREADS_FOR_CONNECTOR=$( eval echo \$"MIN_SPARE_THREADS_FOR_CONNECTOR${i}" )
         MIN_SPARE_THREADS_FOR_CONNECTOR=${MIN_SPARE_THREADS_FOR_CONNECTOR:-$MIN_SPARE_THREADS}
+        USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR=$( eval echo \$"USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR${i}")
+        USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR=${USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR:-$USE_BODY_ENCODING_FOR_URI}
         MAX_PARAMETER_COUNT=$( eval echo \$"MAX_PARAMETER_COUNT${i}" )
 
         # check for content compression settings
@@ -132,7 +135,7 @@ set \$service/Connector[${index}]/#attribute/maxSpareThreads ${MAX_SPARE_THREADS
 set \$service/Connector[${index}]/#attribute/maxThreads ${MAX_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/minSpareThreads ${MIN_SPARE_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/redirectPort 8443\n\
-set \$service/Connector[${index}]/#attribute/useBodyEncodingForURI true\n\
+set \$service/Connector[${index}]/#attribute/useBodyEncodingForURI ${USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/URIEncoding UTF-8\n\
 set \$service/Connector[${index}]/#attribute/relaxedPathChars []|\n\
 set \$service/Connector[${index}]/#attribute/relaxedQueryChars []|{}^&#x5c;&#x60;&quot;&lt;&gt;\n\
