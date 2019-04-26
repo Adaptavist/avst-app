@@ -186,6 +186,8 @@ set \$service/Connector[${index}]/#attribute/server Apache")
             TOMCAT_RESOURCE_SMTP_STARTTLS=$( eval echo \$"TOMCAT_RESOURCE_SMTP_STARTTLS${i}" )
             TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL=$( eval echo \$"TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL${i}" )
             TOMCAT_RESOURCE_SMTP_CONNECTION_TIMEOUT=$( eval echo \$"TOMCAT_RESOURCE_SMTP_CONNECTION_TIMEOUT${i}" )
+            TOMCAT_RESOURCE_SMTP_TIMEOUT=$( eval echo \$"TOMCAT_RESOURCE_SMTP_TIMEOUT${i}" )
+            TOMCAT_RESOURCE_SMTP_WRITE_TIMEOUT=$( eval echo \$"TOMCAT_RESOURCE_SMTP_WRITE_TIMEOUT${i}" )
 
             # Re-enable variable checking
             set -u
@@ -215,7 +217,13 @@ set \$service/Connector[${index}]/#attribute/server Apache")
                 add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.starttls.enable" "${TOMCAT_RESOURCE_SMTP_STARTTLS}"
                 add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.transport.protocol" "${TOMCAT_RESOURCE_SMTP_TRANSPORT_PROTOCOL}"
                 if [[ ! -z "${TOMCAT_RESOURCE_SMTP_CONNECTION_TIMEOUT}" ]]; then
-                    add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtp.connectiontimeout" "${TOMCAT_RESOURCE_SMTP_CONNECTION_TIMEOUT}"
+                    add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtps.connectiontimeout" "${TOMCAT_RESOURCE_SMTP_CONNECTION_TIMEOUT}"
+                fi
+                if [[ ! -z "${TOMCAT_RESOURCE_SMTP_TIMEOUT}" ]]; then
+                    add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtps.timeout" "${TOMCAT_RESOURCE_SMTP_TIMEOUT}"
+                fi
+                if [[ ! -z "${TOMCAT_RESOURCE_SMTP_WRITE_TIMEOUT}" ]]; then
+                    add_or_remove_connector "Engine/Host/Context/Resource" $index "mail.smtps.writetimeout" "${TOMCAT_RESOURCE_SMTP_WRITE_TIMEOUT}"
                 fi
 
             fi
