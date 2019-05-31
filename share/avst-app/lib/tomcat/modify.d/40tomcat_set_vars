@@ -36,6 +36,7 @@ else
     MAX_SPARE_THREADS="${MAX_SPARE_THREADS:-75}"
     MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
     USE_BODY_ENCODING_FOR_URI="${USE_BODY_ENCODING_FOR_URI:-true}"
+    MAX_HTTP_HEADER_SIZE="${MAX_HTTP_HEADER_SIZE:-8192}"
     # take an index, attribute and value and add the set or rm to the
     # AUGEAS_DOC variable building the document to be applied.
     #
@@ -113,6 +114,9 @@ set \$service/$node[${index}]/#attribute/${attribute} ${value}")
         MIN_SPARE_THREADS_FOR_CONNECTOR=${MIN_SPARE_THREADS_FOR_CONNECTOR:-$MIN_SPARE_THREADS}
         USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR=$( eval echo \$"USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR${i}")
         USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR=${USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR:-$USE_BODY_ENCODING_FOR_URI}
+        MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR=$( eval echo \$"MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR${i}")
+        MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR=${MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR:-$MAX_HTTP_HEADER_SIZE}
+
         MAX_PARAMETER_COUNT=$( eval echo \$"MAX_PARAMETER_COUNT${i}" )
 
         # check for content compression settings
@@ -130,7 +134,7 @@ set \$service/Connector[${index}]/#attribute/acceptCount 100\n\
 set \$service/Connector[${index}]/#attribute/connectionTimeout 20000\n\
 set \$service/Connector[${index}]/#attribute/disableUploadTimeout true\n\
 set \$service/Connector[${index}]/#attribute/enableLookups false\n\
-set \$service/Connector[${index}]/#attribute/maxHttpHeaderSize 8192\n\
+set \$service/Connector[${index}]/#attribute/maxHttpHeaderSize ${MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/maxSpareThreads ${MAX_SPARE_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/maxThreads ${MAX_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/minSpareThreads ${MIN_SPARE_THREADS_FOR_CONNECTOR}\n\
