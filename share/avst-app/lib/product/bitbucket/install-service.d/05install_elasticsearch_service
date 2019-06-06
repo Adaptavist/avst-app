@@ -66,6 +66,20 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
     SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
 
+    # Bitbucket >= 6.0.0 used ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
+    VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.16.99' '<' '${VERSION}'" )
+    if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+        cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
+        chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${SEARCH_HOME_DIR}/jvm.options"
+        CONFIG_ARG_PATH_CONF=""
+        ENV_PATH_CONF="ES_PATH_CONF=${SEARCH_HOME_DIR}"
+    else
+        CONFIG_ARG_PATH_CONF="-${ES_CONFIG_ARG}path.conf=${SEARCH_HOME_DIR}"
+        ENV_PATH_CONF=""
+    fi
+
+
+
     if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
         SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
         cd "${SYSTEMD_HOME}"
@@ -79,6 +93,8 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
             sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
             sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+            sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
+            sed "s#<ENV_PATH_CONF>#Environment=${ENV_PATH_CONF}#g" | \
             sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.service"
     else
         INIT_HOME="${INIT_HOME:-/etc}"
@@ -90,8 +106,11 @@ if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
             sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
             sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+            sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
+            sed "s#<ENV_PATH_CONF>#env ${ENV_PATH_CONF}#g" | \
             sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.conf"
         AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
     fi
+
 fi
 
