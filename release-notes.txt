@@ -1,3 +1,13 @@
+Release 0.60, 7th June 2019
+---------------------------
+
+Improved configurability of tomcat server.xml:
+* Added mail based JNDI object timeout
+* Made useBodyEncodingForURI and maxHttpHeaderSize configurable per connection
+
+Added support for ElasticSearch 6.5 on Biutbucket 6 and higher
+
+
 Release 0.59, 8th March 2019
 ----------------------------
 
