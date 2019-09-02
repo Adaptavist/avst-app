@@ -1,3 +1,30 @@
+Release 0.61, 2nd August 2019
+-----------------------------
+
+Added basic support for Bitbucket DC, this involved:
+support to set cluster config params (limited to TCP/IP discover atm) via the following variables
+  - CLUSTER_NAME  = The name of the BB cluster
+  - CLUSTER_PASSWORD = The password to connect nodes to the BB cluster
+  - CLUSTER_PEERS = comma separated list of IP' and ports of each nodes, i.e 192.168.12.1:5701,192.168.12.2:5701
+
+support to disable the in-build elastic search instance, this stops it being started, configured as a server
+and also from being a dependent service for the main bitbucket service, this is controlled by the variable ENABLE_ELASTICSEARCH:
+  - 1 = enable in-built ES, as per previous functionality
+  - 0 = disable in-built ES, do not install ES service and do not make it a dependency of the bitbucket service
+  currently this flag *only* has any affect at install/upgrade time, it does not have any affect on modify operations
+
+support to configure an external elastic search instance, the following controlled via the following parameters:
+  - ELASTICSEARCH_CONFIGURE_REMOTE = flag to determine if external ES is in use, values are:
+    - 0 = not in use, will attempt to remove any remote ES parameters from properties file
+    - 1 = in use, will attempt to add the any of the remote ES params that have values
+    - -1 = ignore, this ignores the config, leaving bitbucket.properties in whatever state its currently in
+  - ELASTICSEARCH_URL = URL of the remote ES instance
+  - ELASTICSEARCH_USER = Username to connect to the remote ES instance
+  - ELASTICSEARCH_PASS = Password to connect to the remote ES instance
+  - ELASTICSEARCH_AWS_REGION = For AWS SaaS ES instances, this identifies the AWS region they are running in
+
+
+
 Release 0.60, 7th June 2019
 ---------------------------
 
