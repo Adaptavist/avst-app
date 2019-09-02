@@ -138,6 +138,41 @@ save
 print /augeas//error
 EOF
             ;;
+        'bitbucket')
+           # TODO: support more joining methods, currently only TCP/IP (list of nodes) is supported
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/shared/bitbucket.properties"
+            CLUSTER_NAME=${CLUSTER_NAME:-}
+            CLUSTER_PASSWORD=${CLUSTER_PASSWORD:-}
+            CLUSTER_PEERS=${CLUSTER_PEERS:-}
+            if [ -z "${CLUSTER_CONFIG_FILE}" \
+                -o -z "${CLUSTER_NAME}" \
+                -o -z "${CLUSTER_PASSWORD}" \
+                -o -z "${CLUSTER_PEERS}" ]; then
+                fatal "
+                DC_ENABLE is set, but one or all of the mandatory variables are not set in:
+                CLUSTER_CONFIG_FILE
+                CLUSTER_PASSWORD
+                CLUSTER_NAME
+                CLUSTER_PEERS"
+                exit 51
+            fi
+
+            debug "atlassian/modify/setup_dc: Attempting to modify bitbucket bitbucket.properties for DC"
+
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${CLUSTER_CONFIG_FILE}"
+load
+set /files${CLUSTER_CONFIG_FILE}/hazelcast.network.multicast false
+set /files${CLUSTER_CONFIG_FILE}/hazelcast.network.tcpip true
+set /files${CLUSTER_CONFIG_FILE}/hazelcast.network.tcpip.members ${CLUSTER_PEERS}
+set /files${CLUSTER_CONFIG_FILE}/hazelcast.group.name ${CLUSTER_NAME}
+set /files${CLUSTER_CONFIG_FILE}/hazelcast.group.password ${CLUSTER_PASSWORD}
+save
+print /augeas//error
+EOF
+            ;;
+        
         *)
             echo "Attempted to add DC Configuration for PRODUCT: ${PRODUCT} but this is not possible"
             exit 50
@@ -171,6 +206,23 @@ rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#at
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.node.name']/
+save
+print /augeas//error
+EOF
+            ;;
+        'bitbucket')
+            CLUSTER_CONFIG_FILE="${HOME_DIR}/shared/bitbucket.properties"
+            debug "atlassian/modify/setup_dc: Attempting to modify bitbucket bitbucket.properties for DC"
+            # remove cluster config
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${CLUSTER_CONFIG_FILE}"
+load
+rm /files${CLUSTER_CONFIG_FILE}/hazelcast.network.multicast
+rm /files${CLUSTER_CONFIG_FILE}/hazelcast.network.tcpip
+rm /files${CLUSTER_CONFIG_FILE}/hazelcast.network.tcpip.members
+rm /files${CLUSTER_CONFIG_FILE}/hazelcast.group.name
+rm /files${CLUSTER_CONFIG_FILE}/hazelcast.group.password
 save
 print /augeas//error
 EOF
