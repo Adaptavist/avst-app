@@ -15,102 +15,108 @@
 
 parse_and_test_version ".tar.gz"
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.5.2' '<' '${VERSION}'" )
-if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
-    
-    # Bitbucket >= 5.7.0 used ElasticSearch 5, set files to copy and argument letter accordingly
-    VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${VERSION}'" )
+# if ES is required ensure that we are running a version that supports it
+if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
     if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
-        # setup jvm.options
-        if [[ ! -d "${INSTALL_DIR}/elasticsearch/config" ]]; then
-            mkdir -p "${INSTALL_DIR}/elasticsearch/config"
-        fi
-        if [[ ! -f "${INSTALL_DIR}/elasticsearch/config/jvm.options" ]]; then
-            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" ]]; then
-                fatal "Search service installation failed. ${INSTALL_DIR}/elasticsearch/config/jvm.options not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/jvm.options"
-                exit 38
+        
+        # Bitbucket >= 5.7.0 used ElasticSearch 5, set files to copy and argument letter accordingly
+        VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${VERSION}'" )
+        if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+            # setup jvm.options
+            if [[ ! -d "${INSTALL_DIR}/elasticsearch/config" ]]; then
+                mkdir -p "${INSTALL_DIR}/elasticsearch/config"
             fi
-            cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
-            chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
-        fi
-        # set files to copy and arg letter
-        ES_FILES_TO_COPY=('elasticsearch.yml' 'log4j2.properties')
-        ES_CONFIG_ARG="E"
-    else
-        # set files to copy and arg letter
-        ES_FILES_TO_COPY=('elasticsearch.yml')
-        ES_CONFIG_ARG="D"
-    fi
-
-    if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
-        mkdir -p "$HOME_DIR/shared/search/data"
-    fi
-    # change ownership of shared/serach/data
-    chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared"
-    
-    # loop throught all the files to copy
-    for COPY_FILE in "${ES_FILES_TO_COPY[@]}"; do
-        if [[ ! -f "${HOME_DIR}/shared/search/${COPY_FILE}" ]]; then
-            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" ]]; then
-                fatal "Search service installation failed. ${HOME_DIR}/shared/search/${COPY_FILE} not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}"
-                exit 38
+            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config/jvm.options" ]]; then
+                if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" ]]; then
+                    fatal "Search service installation failed. ${INSTALL_DIR}/elasticsearch/config/jvm.options not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/jvm.options"
+                    exit 38
+                fi
+                cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
+                chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
             fi
-            cp "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" "${HOME_DIR}/shared/search/${COPY_FILE}"
-            chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${HOME_DIR}/shared/search/${COPY_FILE}"
+            # set files to copy and arg letter
+            ES_FILES_TO_COPY=('elasticsearch.yml' 'log4j2.properties')
+            ES_CONFIG_ARG="E"
+        else
+            # set files to copy and arg letter
+            ES_FILES_TO_COPY=('elasticsearch.yml')
+            ES_CONFIG_ARG="D"
         fi
-    done
 
-    # to enable service in 15service_manager_reload_config
-    START_ELASTICSEARCH='true'
-    SEARCH_SERVICE_MAX_OPEN_FILES="${SEARCH_SERVICE_MAX_OPEN_FILES:-${SERVICE_MAX_OPEN_FILES}}"
-    SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
-    SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
-    SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
+        if [[ ! -d "$HOME_DIR/shared/search/data" ]]; then
+            mkdir -p "$HOME_DIR/shared/search/data"
+        fi
+        # change ownership of shared/serach/data
+        chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared"
+        
+        # loop throught all the files to copy
+        for COPY_FILE in "${ES_FILES_TO_COPY[@]}"; do
+            if [[ ! -f "${HOME_DIR}/shared/search/${COPY_FILE}" ]]; then
+                if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" ]]; then
+                    fatal "Search service installation failed. ${HOME_DIR}/shared/search/${COPY_FILE} not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}"
+                    exit 38
+                fi
+                cp "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" "${HOME_DIR}/shared/search/${COPY_FILE}"
+                chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${HOME_DIR}/shared/search/${COPY_FILE}"
+            fi
+        done
 
-    # Bitbucket >= 6.0.0 used ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
-    VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.16.99' '<' '${VERSION}'" )
-    if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
-        cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
-        chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${SEARCH_HOME_DIR}/jvm.options"
-        CONFIG_ARG_PATH_CONF=""
-        ENV_PATH_CONF="ES_PATH_CONF=${SEARCH_HOME_DIR}"
-    else
-        CONFIG_ARG_PATH_CONF="-${ES_CONFIG_ARG}path.conf=${SEARCH_HOME_DIR}"
-        ENV_PATH_CONF=""
+        # to enable service in 15service_manager_reload_config
+        START_ELASTICSEARCH='true'
+        SEARCH_SERVICE_MAX_OPEN_FILES="${SEARCH_SERVICE_MAX_OPEN_FILES:-${SERVICE_MAX_OPEN_FILES}}"
+        SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
+        SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
+        SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
+
+        # Bitbucket >= 6.0.0 used ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
+        VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.16.99' '<' '${VERSION}'" )
+        if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+            cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
+            chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${SEARCH_HOME_DIR}/jvm.options"
+            CONFIG_ARG_PATH_CONF=""
+            ENV_PATH_CONF="ES_PATH_CONF=${SEARCH_HOME_DIR}"
+        else
+            CONFIG_ARG_PATH_CONF="-${ES_CONFIG_ARG}path.conf=${SEARCH_HOME_DIR}"
+            ENV_PATH_CONF=""
+        fi
+
+
+
+        if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
+            SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
+            cd "${SYSTEMD_HOME}"
+            SEARCH_TARGET="${SEARCH_SERVICE_NAME}.target"
+            REQUIRE_SEARCH_SERVICE="Requires=${SEARCH_SERVICE_NAME}.service"
+            debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating systemd service."
+            cat "${SHARE_DIR}/systemd/atlas-search.service" | \
+                sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
+                sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
+                sed "s#<MAX_OPEN_FILES>#${SEARCH_SERVICE_MAX_OPEN_FILES}#g" | \
+                sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
+                sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
+                sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+                sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
+                sed "s#<ENV_PATH_CONF>#Environment=${ENV_PATH_CONF}#g" | \
+                sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.service"
+        else
+            INIT_HOME="${INIT_HOME:-/etc}"
+            cd "${INIT_HOME}/init"
+            debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating upstart service."
+            cat "${SHARE_DIR}/upstart/upstart-atlas-search.conf" | \
+                sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
+                sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
+                sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
+                sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
+                sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
+                sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
+                sed "s#<ENV_PATH_CONF>#env ${ENV_PATH_CONF}#g" | \
+                sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.conf"
+            AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
+        fi
+
     fi
-
-
-
-    if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
-        SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
-        cd "${SYSTEMD_HOME}"
-        SEARCH_TARGET="${SEARCH_SERVICE_NAME}.target"
-        REQUIRE_SEARCH_SERVICE="Requires=${SEARCH_SERVICE_NAME}.service"
-        debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating systemd service."
-        cat "${SHARE_DIR}/systemd/atlas-search.service" | \
-            sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
-            sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
-            sed "s#<MAX_OPEN_FILES>#${SEARCH_SERVICE_MAX_OPEN_FILES}#g" | \
-            sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
-            sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
-            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
-            sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
-            sed "s#<ENV_PATH_CONF>#Environment=${ENV_PATH_CONF}#g" | \
-            sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.service"
-    else
-        INIT_HOME="${INIT_HOME:-/etc}"
-        cd "${INIT_HOME}/init"
-        debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating upstart service."
-        cat "${SHARE_DIR}/upstart/upstart-atlas-search.conf" | \
-            sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
-            sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
-            sed "s#<SEARCH_LOG_DIR>#${SEARCH_LOG_DIR}#g" | \
-            sed "s#<SEARCH_BIN_DIR>#${SEARCH_BIN_DIR}#g" | \
-            sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
-            sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
-            sed "s#<ENV_PATH_CONF>#env ${ENV_PATH_CONF}#g" | \
-            sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.conf"
-        AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
-    fi
-
+else
+    # if ES is not rquired set the START_ELASTICSEARCH flag to blank
+    START_ELASTICSEARCH=''
 fi
 

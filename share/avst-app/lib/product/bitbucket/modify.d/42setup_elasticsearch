@@ -1,0 +1,84 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Possible values are:
+#  0 - Disabled i.e. actively remove any remote ES params
+#  1 - Enabled i.e. actively add any remote ES params
+# -1 - Ignore i.e. do nothing, leave the config in whatever state its in
+
+# althouh not mandatory it would usually make sense to set "ENABLE_ELASTICSEARCH" to 0 (disabled) if
+# ELASTICSEARCH_CONFIGURE_REMOTE is set to 1, usually if connecting to a remote ES instance the local 
+# ES would not be required!
+
+ELASTICSEARCH_CONFIGURE_REMOTE="${ELASTICSEARCH_CONFIGURE_REMOTE:--1}"
+
+# if the product is bitbucket version 5 or above then run
+if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
+    BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
+
+    # if we are to use a remote ES then attempt to set properties
+    if [[ ${ELASTICSEARCH_CONFIGURE_REMOTE} -eq 1 ]]; then
+        debug "bitbucket/modify/setup_elasticsearch: attempting to configure remote elasticsearch in bitbucket.properties"
+        AUGEAS_DOC=""
+        ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-}
+        ELASTICSEARCH_USER=${ELASTICSEARCH_USER:-}
+        ELASTICSEARCH_PASS=${ELASTICSEARCH_PASS:-}
+        ELASTICSEARCH_AWS_REGION=${ELASTICSEARCH_AWS_REGION:-}
+
+        if [[ ! -z "${ELASTICSEARCH_URL}" ]]; then
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+            set /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.baseurl '${ELASTICSEARCH_URL}'")
+        fi
+
+        if [[ ! -z "${ELASTICSEARCH_USER}" ]]; then
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+            set /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.username '${ELASTICSEARCH_USER}'")
+        fi
+
+        if [[ ! -z "${ELASTICSEARCH_PASS}" ]]; then
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+            set /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.password '${ELASTICSEARCH_PASS}'")
+        fi
+
+        if [[ ! -z "${ELASTICSEARCH_AWS_REGION}" ]]; then
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n\
+            set /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.aws.region '${ELASTICSEARCH_AWS_REGION}'")
+        fi
+
+            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
+load
+${AUGEAS_DOC}
+save
+print /augeas//error
+EOF
+    elif [[ ${ELASTICSEARCH_CONFIGURE_REMOTE} -eq 0 ]]; then
+        debug "bitbucket/modify/setup_elasticsearch: attempting to remove remote elasticsearch config in bitbucket.properties"
+        augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/properties/lens "Properties.lns"
+set /augeas/load/properties/incl "${BITBUCKET_PROPERTIES_FILE}"
+load
+rm /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.baseurl
+rm /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.username
+rm /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.password
+rm /files${BITBUCKET_PROPERTIES_FILE}/plugin.search.elasticsearch.aws.region
+save
+print /augeas//error
+EOF
+    fi
+else
+    debug "bitbucket/modify/setup_elasticsearch: skipping as bitbucket < 5 uses server.xml for configuration"
+fi

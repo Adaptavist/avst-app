@@ -18,7 +18,7 @@ set -e
 # Ensure that all variables have been set
 set -u
 
-# if the product is bitbucket version 5 or above do not run
+# if the product is bitbucket version 5 or above then run
 if [[ ${PRODUCT} == "bitbucket" && ${MAJOR_VER:-0} -ge 5 ]]; then
     BITBUCKET_PROPERTIES_FILE="${HOME_DIR}/shared/bitbucket.properties"
 
@@ -166,6 +166,7 @@ save
 print /augeas//error
 
 EOF
+# if the version of BB is less than 5 do not run, standard tromcat setup is used instead of BB specific in this case
 else
     debug "bitbucket/modify/bitbucket_set_vars: skipping as bitbucket < 5 uses server.xml for configuration"
 fi
