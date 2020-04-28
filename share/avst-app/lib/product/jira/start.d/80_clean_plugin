@@ -1,0 +1,40 @@
+#!/bin/bash
+# Copyright 2020 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+remove_jira_plugin_dir() {
+	# if we have been passed an argument
+    if [[ ! -z ${1:-} ]]; then
+    	# and if the directory exists
+    	REMOVE_DIR="${HOME_DIR}/plugins/${1}"
+        if [[ -d "${REMOVE_DIR}" ]]; then
+            # remove it
+            debug "jira/start/clean_plugin: Removing ${REMOVE_DIR}"
+            rm -rf "${REMOVE_DIR}"
+        fi
+    fi
+}
+
+# define list of directories that should be removed
+JIRA_PLUGIN_REMOVE_DIRS=(.bundled-plugins .osgi-plugins)
+
+# if the CLEAN_PLUGIN_CACHE flag is set to 1 (true) then delete the plugin cache directories (as long as they exist)
+if [[  "${CLEAN_PLUGIN_CACHE:-0}" -eq 1 ]]; then
+	debug "jira/start/clean_plugin: Attempting to clean Plugin Caches"
+
+    # loop through all directories and attempt to remove    
+    for REMOVE in ${JIRA_PLUGIN_REMOVE_DIRS[@]}; do
+        remove_jira_plugin_dir "$REMOVE"
+    done
+fi
