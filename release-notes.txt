@@ -1,3 +1,19 @@
+Release 0.63, 28th April 2020
+-----------------------------
+
+Modified bamboo/jira "42disable_tomcat_access_logging" logic, added the ability to skip logging management all together, this is usefull as trying to
+manage the configuration (either to enable or disable) when the XML element(s) has been removed will cause the XML configuration document to be malformed.  
+This functionality is controlled via the SKIP_LOGGING_MANAGEMENT flag, a value of 1 means that logging will not be managed by avst-app, any other value means it will (defaults to 0)
+
+Added support to cleanup plugin caches and the home temp directory on startup in jira and confluence.
+
+This functionality is controlled by two new flags:
+* CLEAN_PLUGIN_CACHE - This flag determines if the plugin cache folders are cleared before the application starts, a value of 
+                       1 means yes and anything else means no (defaults to 0)
+* CLEAN_HOME_TEMP    - This flag determines if the temp directory in home is emptied before the application starts, a value of 
+                       1 means yes and anything else means no (defaults to 0)
+
+
 Release 0.62, 25th November 2019
 --------------------------------
 
