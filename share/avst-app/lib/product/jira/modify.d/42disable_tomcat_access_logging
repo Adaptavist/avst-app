@@ -13,39 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# if we are not managing the tomcat logging at all then do nothing to the config and print an informative debug message
-if [[ ${SKIP_LOGGING_MANAGEMENT:-0} -eq "1" ]]; then
-    warn "jira/modify.d/42disable_tomcat_access_logging: logging management disabled"
+if [[ ${REMOVE_TOMCAT_ACCESS_LOGGING:-0} -eq "0" ]]; then
+    ENABLE_TOMCAT_LOGGING='true'
 else
-    if [[ ${REMOVE_TOMCAT_ACCESS_LOGGING:-0} -eq "0" ]]; then
-        ENABLE_TOMCAT_LOGGING='true'
+    ENABLE_TOMCAT_LOGGING='false'
+fi
+VALVES_COUNT=`grep \<Valve ${SERVER_XML_FILE} | wc -l`
+if [[ ${VALVES_COUNT:-0} -eq 0 ]]; then
+    warn "bamboo/modify.d/42disable_tomcat_access_logging: No Valve element found in ${SERVER_XML_FILE}."
+else
+    if [[ ${VALVES_COUNT:-0} -eq 1 ]]; then 
+            REMOVE_TOMCAT_ACCESS_LOGGING_CMD="set \$service/Engine/Valve/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}"
     else
-        ENABLE_TOMCAT_LOGGING='false'
+    REMOVE_TOMCAT_ACCESS_LOGGING_CMD="set \$service/Engine/Valve[1]/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}"
+            for (( i = 2; i <= ${VALVES_COUNT}; i++ )); do
+                    REMOVE_TOMCAT_ACCESS_LOGGING_CMD=$(printf "${REMOVE_TOMCAT_ACCESS_LOGGING_CMD}\n\
+    set \$service/Engine/Valve[${i}]/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}")
+            done
     fi
-    VALVES_COUNT=`grep \<Valve ${SERVER_XML_FILE} | wc -l`
-    if [[ ${VALVES_COUNT:-0} -eq 0 ]]; then
-        warn "jira/modify.d/42disable_tomcat_access_logging: No Valve element found in ${SERVER_XML_FILE}."
-    else
-        if [[ ${VALVES_COUNT:-0} -eq 1 ]]; then
-                REMOVE_TOMCAT_ACCESS_LOGGING_CMD="set \$service/Engine/Valve/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}"
-        else
-        REMOVE_TOMCAT_ACCESS_LOGGING_CMD="set \$service/Engine/Valve[1]/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}"
-                for (( i = 2; i <= ${VALVES_COUNT}; i++ )); do
-                        REMOVE_TOMCAT_ACCESS_LOGGING_CMD=$(printf "${REMOVE_TOMCAT_ACCESS_LOGGING_CMD}\n\
-        set \$service/Engine/Valve[${i}]/#attribute/enabled ${ENABLE_TOMCAT_LOGGING}")
-                done
-        fi
 
-        augtool -LA ${AUGTOOL_DEBUG} <<EOF
-        set /augeas/load/xml/lens "Xml.lns"
-        set /augeas/load/xml/incl "${SERVER_XML_FILE}"
-        load
-        defvar server_xml "/files/${SERVER_XML_FILE}"
-        defvar service \$server_xml/Server/Service
-        print \$service/Engine
-        ${REMOVE_TOMCAT_ACCESS_LOGGING_CMD}
-        save
-        print /augeas//error
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+    set /augeas/load/xml/lens "Xml.lns"
+    set /augeas/load/xml/incl "${SERVER_XML_FILE}"
+    load
+    defvar server_xml "/files/${SERVER_XML_FILE}"
+    defvar service \$server_xml/Server/Service
+    print \$service/Engine
+    ${REMOVE_TOMCAT_ACCESS_LOGGING_CMD}
+    save
+    print /augeas//error
 EOF
-    fi
 fi
