@@ -47,7 +47,12 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
             mkdir -p "$HOME_DIR/shared/search/data"
         fi
         # change ownership of shared/serach/data
-        chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared"
+        chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "$HOME_DIR/shared/search"
+
+        # change ownership of install locations
+        if [[ -d "${INSTALL_DIR}/elasticsearch/" ]]; then
+            chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/"
+        fi
         
         # loop throught all the files to copy
         for COPY_FILE in "${ES_FILES_TO_COPY[@]}"; do
@@ -68,7 +73,7 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
         SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
         SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
 
-        # Bitbucket >= 6.0.0 used ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
+        # Bitbucket >= 6.0.0 uses ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
         VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.16.99' '<' '${VERSION}'" )
         if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
@@ -80,14 +85,23 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
             ENV_PATH_CONF=""
         fi
 
-
+        # Bitbucket >= 7.2.0 uses ElasticSearch 7.5, which needs to hava JAVA_HOME set
+        VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.1.99' '>' '${VERSION}'" )
+        if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
+            # add the JAVA_HOME Env Variable into the Unit file
+            SEARCH_JAVA_HOME="${SEARCH_JAVA_HOME:-/usr/java/latest}"
+            ENV_PATH_CONF="${ENV_PATH_CONF:-} JAVA_HOME=${SEARCH_JAVA_HOME}"
+            debug "bitbucket/install-service/install_elasticsearch_service: adding JAVA_HOME environment variable to ES Service configuration"
+        else
+            debug "bitbucket/install-service/install_elasticsearch_service: Not adding JAVA_HOME to ES Service configuration"
+        fi
 
         if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
             SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
             cd "${SYSTEMD_HOME}"
             SEARCH_TARGET="${SEARCH_SERVICE_NAME}.target"
             REQUIRE_SEARCH_SERVICE="Requires=${SEARCH_SERVICE_NAME}.service"
-            debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating systemd service."
+            debug "bitbucket/install-service/install_elasticsearch_service: Elasticsearch script found, creating systemd service."
             cat "${SHARE_DIR}/systemd/atlas-search.service" | \
                 sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
                 sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
@@ -101,7 +115,7 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
         else
             INIT_HOME="${INIT_HOME:-/etc}"
             cd "${INIT_HOME}/init"
-            debug "common/service_manager/create_systemd_file: Elasticsearch script found, creating upstart service."
+            debug "bitbucket/install-service/install_elasticsearch_service: Elasticsearch script found, creating upstart service."
             cat "${SHARE_DIR}/upstart/upstart-atlas-search.conf" | \
                 sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | \
                 sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | \
