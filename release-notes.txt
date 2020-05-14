@@ -1,3 +1,9 @@
+Release 0.64, 14th May 2020
+---------------------------
+
+Added support for Bitbucket >= 7.2.0, which ships with ElasticSearch 7.5, the service scripts need to set JAVA_HOME to support the new ES version. The location of JAVA_HOME for the service can be controlled by the below avst-app.cfg.sh variable:
+* SEARCH_JAVA_HOME - defaults to /usr/java/latest 
+
 Release 0.63, 28th April 2020
 -----------------------------
 
