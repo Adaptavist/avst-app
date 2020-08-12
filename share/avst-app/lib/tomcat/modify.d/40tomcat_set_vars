@@ -37,7 +37,7 @@ else
     MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
     USE_BODY_ENCODING_FOR_URI="${USE_BODY_ENCODING_FOR_URI:-true}"
     MAX_HTTP_HEADER_SIZE="${MAX_HTTP_HEADER_SIZE:-8192}"
-    MAX_POST_SIZE="${MAX_POST_SIZE:-2048}"
+    MAX_POST_SIZE="${MAX_POST_SIZE:-2097152}"
     CONNECTOR_CONNECTION_TIMEOUT="${CONNECTOR_CONNECTION_TIMEOUT:-20000}"
     # take an index, attribute and value and add the set or rm to the
     # AUGEAS_DOC variable building the document to be applied.
