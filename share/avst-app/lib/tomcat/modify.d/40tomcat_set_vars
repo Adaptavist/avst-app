@@ -37,6 +37,7 @@ else
     MIN_SPARE_THREADS="${MIN_SPARE_THREADS:-25}"
     USE_BODY_ENCODING_FOR_URI="${USE_BODY_ENCODING_FOR_URI:-true}"
     MAX_HTTP_HEADER_SIZE="${MAX_HTTP_HEADER_SIZE:-8192}"
+    MAX_POST_SIZE="${MAX_POST_SIZE:-2097152}"
     CONNECTOR_CONNECTION_TIMEOUT="${CONNECTOR_CONNECTION_TIMEOUT:-20000}"
     # take an index, attribute and value and add the set or rm to the
     # AUGEAS_DOC variable building the document to be applied.
@@ -117,6 +118,8 @@ set \$service/$node[${index}]/#attribute/${attribute} ${value}")
         USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR=${USE_BODY_ENCODING_FOR_URI_FOR_CONNECTOR:-$USE_BODY_ENCODING_FOR_URI}
         MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR=$( eval echo \$"MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR${i}")
         MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR=${MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR:-$MAX_HTTP_HEADER_SIZE}
+        MAX_POST_SIZE_FOR_CONNECTOR=$( eval echo \$"MAX_POST_SIZE_FOR_CONNECTOR${i}")
+        MAX_POST_SIZE_FOR_CONNECTOR=${MAX_POST_SIZE_FOR_CONNECTOR:-$MAX_POST_SIZE}
         CONNECTOR_CONNECTION_TIMEOUT_FOR_CONNECTOR=$( eval echo \$"CONNECTOR_CONNECTION_TIMEOUT${i}" )
         CONNECTOR_CONNECTION_TIMEOUT_FOR_CONNECTOR=${CONNECTOR_CONNECTION_TIMEOUT_FOR_CONNECTOR:-$CONNECTOR_CONNECTION_TIMEOUT}
 
@@ -138,6 +141,7 @@ set \$service/Connector[${index}]/#attribute/connectionTimeout ${CONNECTOR_CONNE
 set \$service/Connector[${index}]/#attribute/disableUploadTimeout true\n\
 set \$service/Connector[${index}]/#attribute/enableLookups false\n\
 set \$service/Connector[${index}]/#attribute/maxHttpHeaderSize ${MAX_HTTP_HEADER_SIZE_FOR_CONNECTOR}\n\
+set \$service/Connector[${index}]/#attribute/maxPostSize ${MAX_POST_SIZE_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/maxSpareThreads ${MAX_SPARE_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/maxThreads ${MAX_THREADS_FOR_CONNECTOR}\n\
 set \$service/Connector[${index}]/#attribute/minSpareThreads ${MIN_SPARE_THREADS_FOR_CONNECTOR}\n\
