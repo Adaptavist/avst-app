@@ -1,3 +1,13 @@
+Release 0.65, 26th Aug 2020
+---------------------------
+
+Added support for setting maxPostSize in each tomcat connector in bytes, this is controled by the following:
+* MAX_POST_SIZE - deafults to 2097152
+
+Additionally it is possible to set the value for each connector individually, the first connector will just use MAX_POST_SIZE, all
+additional connectors can be set via MAX_POST_SIZE_FOR_CONNECTOR<connector number>, i.e MAX_POST_SIZE_FOR_CONNECTOR1 (second connector).
+If a connector specific value is not set then that connector will fallback to the value of MAX_POST_SIZE
+
 Release 0.64, 14th May 2020
 ---------------------------
 
