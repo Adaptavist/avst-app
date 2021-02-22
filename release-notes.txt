@@ -6,6 +6,9 @@ Added support for setting <schema-name></schema-name> in jira dbconfig.xml if th
 
 This is controlled by the DB_SCHEMA_NAME avst-app.cfg.sh variable, the default value of which is nothing and results in the element not being set
 
+In addition the logic to set "validation-query-timeout" for MySQL databases has been extended to any database type starting "mysql" instead of an exact match
+for just "mysql", this allows the mysql57 database type to also set the "validation-query-timeout" element
+
 
 Release 0.65, 26th Aug 2020
 ---------------------------

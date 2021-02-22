@@ -60,7 +60,7 @@ EOF
   fi
 
   # if the DB is mysql add validation-query-timeout, if not do not
-  if [[ "${DB_TYPE}" == "mysql" ]]; then
+  if [[ "${DB_TYPE}" == mysql* ]]; then
     debug "jira/modify/setup_db: MySQL detected, setting validation-query-timeout"
     VAL_QUERY_TIMEOUT_SET="set \$datasources/validation-query-timeout/#text \"${DB_VALIDATION_QUERY_TIMEOUT:-3}\"" 
   else
