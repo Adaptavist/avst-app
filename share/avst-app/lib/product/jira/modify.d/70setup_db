@@ -60,12 +60,21 @@ EOF
   fi
 
   # if the DB is mysql add validation-query-timeout, if not do not
-  if [[ "${DB_TYPE}" == "mysql" ]]; then
+  if [[ "${DB_TYPE}" == mysql* ]]; then
     debug "jira/modify/setup_db: MySQL detected, setting validation-query-timeout"
     VAL_QUERY_TIMEOUT_SET="set \$datasources/validation-query-timeout/#text \"${DB_VALIDATION_QUERY_TIMEOUT:-3}\"" 
   else
     debug "jira/modify/setup_db: Non MySQL detected, skipping validation-query-timeout"
     VAL_QUERY_TIMEOUT_SET=""
+  fi
+
+  # if this is postgres and a DB Schema Name is provided, set it
+  if [[ -n ${DB_SCHEMA_NAME:-} &&  "${DB_TYPE}" == postgres* ]]; then
+      debug "jira/modify/setup_db: PostgreSQL database type and a DB Schema Name value detected, setting schema-name attribute to ${DB_SCHEMA_NAME}"
+      DB_SCHEMA_NAME_SET="set \$database_config/schema-name/#text \"${DB_SCHEMA_NAME}\""
+  else
+      debug "jira/modify/setup_db: Not setting schema-name attribute"
+      DB_SCHEMA_NAME_SET=""
   fi
 
   # TODO: Create variables from default values and adjust Note above and augtool code
@@ -79,6 +88,7 @@ defvar datasources \$database_config/jdbc-datasource
 set \$database_config/name/#text "${DB_DATASOURCE_NAME:-defaultDS}"
 set \$database_config/delegator-name/#text "${DB_DELEGATOR_NAME:-default}"
 set \$database_config/database-type/#text "${DB_TYPE}"
+${DB_SCHEMA_NAME_SET}
 set \$datasources/url/#text "${DB_JDBC_URL}"
 set \$datasources/driver-class/#text "${DB_DRIVER}"
 set \$datasources/username/#text "${DB_USERNAME}"
