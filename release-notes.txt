@@ -1,3 +1,9 @@
+Release 0.67, 4th May 2022
+
+Expanded the logic that handles Synchrony driver path, previously SYNCHRONY_DRIVER_PATH had to be a fully qualified path to the database driver.
+The new logic now checks if the supplied path is a directory, if so it them looks for a single jar within the directory and if founds adds that file, if there are not exactly 1 file in that directory then avst-app errors out.  This will allow for upgrades without needing to hard code each new jar file name.
+
+Adding some additional exit codes to the README.MD, also updated some duplicate codes to use unique values
 
 Release 0.66, 22nd Feb 2022
 ---------------------------

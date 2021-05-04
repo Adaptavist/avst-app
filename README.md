@@ -77,7 +77,7 @@ The following exit/return codes are used (as of 2014-10-09):
 * 01: BASE_DIR not set
 * 01: Missing Tomcat server.xml
 * 10: Missing variable config in avst-app.cfg.sh
-* 10: Failed prerequisiteshome
+* 10: Failed prerequisites
 * 10: Install directory already exists
 * 11: Java isn't installed
 * 11: Can't initialise git repo
