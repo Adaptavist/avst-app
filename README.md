@@ -109,7 +109,7 @@ The following exit/return codes are used (as of 2014-10-09):
 * 52: Can't set OKTA_SSO for unsupported product
 * 53: Missing mandatory variables for OKTA
 * 55: Missing mandatory variables for DC
-* 52: Can't setup DC for unsupported product
+* 56: Can't setup DC for unsupported product
 * 60: Synchrony driver directory provides but there is not exactly one driver file inside
 * 61: Missing mandatory variables for Synchrony
 * 70: Specified OKTA driver does not exist
