@@ -55,7 +55,7 @@ if [[ 1 -eq ${DC_ENABLE} ]]; then
                 CLUSTER_NODE_ID
                 CLUSTER_SHARED_HOME
                 CLUSTER_NODE_HOSTNAME"
-                exit 51
+                exit 55
             fi
 
             # work out if we are setting node "hostname"
@@ -100,7 +100,7 @@ EOF
                 CLUSTER_SHARED_HOME
                 CLUSTER_NAME
                 CLUSTER_PEERS"
-                exit 51
+                exit 55
             fi
 
             # work out if we are setting node "ID"
@@ -154,7 +154,7 @@ EOF
                 CLUSTER_PASSWORD
                 CLUSTER_NAME
                 CLUSTER_PEERS"
-                exit 51
+                exit 55
             fi
 
             debug "atlassian/modify/setup_dc: Attempting to modify bitbucket bitbucket.properties for DC"
@@ -175,7 +175,7 @@ EOF
         
         *)
             echo "Attempted to add DC Configuration for PRODUCT: ${PRODUCT} but this is not possible"
-            exit 50
+            exit 56
     esac
 
     # TODO Validation
@@ -229,6 +229,6 @@ EOF
             ;;
         *)
             echo "Attempted to remove DC Configuration for PRODUCT: ${PRODUCT} but this is not possible"
-            exit 50
+            exit 56
     esac
 fi

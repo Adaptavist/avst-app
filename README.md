@@ -83,6 +83,7 @@ The following exit/return codes are used (as of 2014-10-09):
 * 11: Can't initialise git repo
 * 12: Missing CROWD properties in config file
 * 13: HOME_DIR not set
+* 14: UPM plugin install issue
 * 20: Missing tarball
 * 20: Invalid Bamboo server URL specified
 * 20: Missing Coverity installer
@@ -105,6 +106,17 @@ The following exit/return codes are used (as of 2014-10-09):
 * 46: Can't start service
 * 50: Can't set CROWD_SSO for unsupported product
 * 51: Missing mandatory variables for CROWD
+* 52: Can't set OKTA_SSO for unsupported product
+* 53: Missing mandatory variables for OKTA
+* 55: Missing mandatory variables for DC
+* 56: Can't setup DC for unsupported product
+* 60: Synchrony driver directory provides but there is not exactly one driver file inside
+* 61: Missing mandatory variables for Synchrony
+* 70: Specified OKTA driver does not exist
+* 77: During an Upgrade the "temporary" backup of home/install for the pre upgrade version already exists
+* 78: During an Upgrade the "temporary" new home directory is NOT empty
+* 79: During an Upgrade the "temporary" renamed old home directory is NOT avaliable to put back
+* 99: Non systemd system detected 
 
 ## Setup JNDI source
 

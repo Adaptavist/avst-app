@@ -63,7 +63,7 @@ if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
             ;;
         *)
             echo "Attempted to set OKTA_SSO for PRODUCT: ${PRODUCT} but this is not possible"
-            exit 50
+            exit 52
     esac
 
     if [ -z "${OKTA_CONFIG_FILE}" \
@@ -72,7 +72,7 @@ if [[ 1 -eq ${OKTA_SSO_ENABLE} ]]; then
         OKTA_SSO_ENABLE is set, but one or all of the mandatory variables are not set in:
         OKTA_CONFIG_FILE
         OKTA_SSO_DRIVER_LOCATION"
-        exit 51
+        exit 53
     fi
 
     # work out if we are setting Login/Logout URL's
@@ -144,7 +144,7 @@ elif [[ 0 -eq ${OKTA_SSO_ENABLE} ]]; then
             ;;
         *)
             echo "Attempted to disable OKTA SSO for PRODUCT: ${PRODUCT} but this is not possible"
-            exit 50
+            exit 52
     esac
 
     # TODO: Need to reset to default

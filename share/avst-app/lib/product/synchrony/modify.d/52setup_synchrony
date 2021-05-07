@@ -37,7 +37,22 @@ if [ -z "${DB_JDBC_URL}" \
     SYNCHRONY_JAR_PATH
     SYNCHRONY_URL
     SYNCHRONY_DRIVER_PATH"
-    exit 52
+    exit 61
+fi
+
+# if the driver path is a directory attempt to discover the actual driver file
+if [[ -d "${SYNCHRONY_DRIVER_PATH}" ]]; then
+    debug "synchrony/modify.d/52_setup_synchrony: Driver Path is a directory, looking for database driver"
+    FOUND_DB_DRIVERS=$(find "${SYNCHRONY_DRIVER_PATH}" -maxdepth 1 -type f -name \*.jar | wc -l)
+    if [[ ${FOUND_DB_DRIVERS} -ne 1 ]]; then
+        fatal "synchrony/modify.d/52_setup_synchrony: Driver path is a directory but there is not exactly 1 file in it, there ${FOUND_DB_DRIVERS} file(s)"
+        exit 60
+    else
+        REAL_SYNCHRONY_DRIVER_PATH=$(find "${SYNCHRONY_DRIVER_PATH}" -maxdepth 1 -type f -name \*.jar )
+        debug "synchrony/modify.d/52_setup_synchrony: Driver ${REAL_SYNCHRONY_DRIVER_PATH} found"
+    fi
+else
+    REAL_SYNCHRONY_DRIVER_PATH="${SYNCHRONY_DRIVER_PATH}"
 fi
 
 
@@ -54,7 +69,7 @@ set  \$prop/DATABASE_PASSWORD "\"${DB_PASSWORD}"\"
 set  \$prop/SERVER_IP "\"${SYNCHRONY_SERVER_IP}"\"
 set  \$prop/SYNCHRONY_JAR_PATH "\"${SYNCHRONY_JAR_PATH}\""
 set  \$prop/SYNCHRONY_URL "\"${SYNCHRONY_URL}"\"
-set  \$prop/DATABASE_DRIVER_PATH "\"${SYNCHRONY_DRIVER_PATH}"\"
+set  \$prop/DATABASE_DRIVER_PATH "\"${REAL_SYNCHRONY_DRIVER_PATH}"\"
 save
 print /augeas//error
 EOF
