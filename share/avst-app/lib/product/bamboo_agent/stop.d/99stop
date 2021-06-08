@@ -15,7 +15,7 @@
 
 debug "bamboo_agent/stop/run: Stopping agent using '${INSTALL_DIR}/bamboo-agent-installer.jar'"
 
-STOP_AGENT_CMD=$( run_cmd su - "${INSTANCE_USER}" -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" \
+STOP_AGENT_CMD=$( run_cmd sudo -u "${INSTANCE_USER}" bash -c \"java -Dbamboo.home=\\\"${HOME_DIR}\\\" \
 	-Ddisable_agent_auto_capability_detection=true -jar \
 	\\\"${INSTALL_DIR}/bamboo-agent-installer.jar\\\" stop\" )
 debug "${STOP_AGENT_CMD}"

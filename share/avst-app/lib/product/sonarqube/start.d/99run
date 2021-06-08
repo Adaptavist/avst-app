@@ -28,4 +28,4 @@ RUN_CMD="\"${WRAPPER_DIR}/sonar.sh\" start"
 
 debug "sonarqube/start/run Running: ${RUN_CMD}"
 
-su "${INSTANCE_USER}" bash -c "${RUN_CMD}"
+sudo -u "${INSTANCE_USER}" bash -c "${RUN_CMD}"

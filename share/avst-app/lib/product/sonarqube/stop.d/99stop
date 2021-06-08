@@ -24,7 +24,7 @@ else
     fi
 fi
 
-RUN_CMD="su \"${INSTANCE_USER}\" bash -c \"${WRAPPER_DIR}/sonar.sh stop\""
+RUN_CMD="sudo -u \"${INSTANCE_USER}\" bash -c \"${WRAPPER_DIR}/sonar.sh stop\""
 
 debug "sonarqube/stop/stop: Running: ${RUN_CMD}"
 

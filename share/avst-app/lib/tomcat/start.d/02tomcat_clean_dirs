@@ -17,7 +17,7 @@ for _dir in 'work' 'temp' ; do
     if [ -d "${TOMCAT_DIR}/${_dir}" ]; then
         debug "tomcat/modify/tomcat_clean_dirs: Clearing ${TOMCAT_DIR}/${_dir}"
         find "${TOMCAT_DIR}/${_dir}" -mindepth 1 -maxdepth 1 -print0 | \
-        su - "${INSTANCE_USER}" -c "xargs -0rP 10 rm -rf"
+        sudo -u "${INSTANCE_USER}" bash -c "xargs -0rP 10 rm -rf"
     fi
 done
 

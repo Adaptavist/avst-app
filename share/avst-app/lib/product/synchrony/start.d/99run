@@ -22,4 +22,4 @@ RUN_CMD="\"${INSTALL_DIR}/start-synchrony.sh\" -fg"
 
 debug "synchrony/start/run Running: ${RUN_CMD}"
 
-su "${INSTANCE_USER}" bash -c "${RUN_CMD}"
+sudo -u "${INSTANCE_USER}" bash -c "${RUN_CMD}"

@@ -19,5 +19,5 @@ RUN_CMD="exec -a \"${INSTANCE_NAME}\" ${JAVA_BIN} ${JAVA_OPTS} \
 
 debug "tomcat/start/run Running: ${RUN_CMD}"
 
-su "${INSTANCE_USER}" bash -c "${RUN_CMD}"
+sudo -u "${INSTANCE_USER}" bash -c "${RUN_CMD}"
 

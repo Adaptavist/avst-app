@@ -22,7 +22,7 @@ if [[  "${CLEAN_HOME_TEMP:-0}" -eq 1 ]]; then
     if [[ -d "${REMOVE_DIR}" ]]; then
         debug "confluence/start/clean_temp: Clearing content of ${REMOVE_DIR}"
         find "${REMOVE_DIR}" -mindepth 1 -maxdepth 1 -print0 | \
-        su - "${INSTANCE_USER}" -c "xargs -0rP 10 rm -rf"
+        sudo -u "${INSTANCE_USER}" bash -c "xargs -0rP 10 rm -rf"
     fi
 
 fi
