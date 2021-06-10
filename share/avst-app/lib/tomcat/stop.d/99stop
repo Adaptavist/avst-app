@@ -48,7 +48,7 @@ CATALINA_TMPDIR="${CATALINA_HOME}/temp"
 
 TOMCAT_STOP_JAVA_OPTS="${TOMCAT_STOP_JAVA_OPTS:--Xms128m -Xmx512m -XX:MaxPermSize=256m}"
 
-RUN_CMD="su \"${INSTANCE_USER}\" bash -c \"exec -a \"${INSTANCE_NAME}_stop\" ${JAVA_BIN} $LOGGING_CONFIG ${TOMCAT_STOP_JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
+RUN_CMD="sudo -u \"${INSTANCE_USER}\" bash -c \"exec -a \"${INSTANCE_NAME}_stop\" ${JAVA_BIN} $LOGGING_CONFIG ${TOMCAT_STOP_JAVA_OPTS} ${LOGGING_MANAGER} ${CATALINA_OPTS:-} \
       -Djava.endorsed.dirs=${JAVA_ENDORSED_DIRS:-''} \
       -classpath $CLASSPATH \
       -Dcatalina.base=$CATALINA_BASE \

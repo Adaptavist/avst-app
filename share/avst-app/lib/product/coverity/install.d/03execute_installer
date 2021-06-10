@@ -93,8 +93,8 @@ set -e
 # As quiet installer does not work well with external db, we are installing the application 
 # via their command line wizard. The install_answers provides step by step answers to different options 
 # required by wizard. 
-install_answers | su - "${INSTANCE_USER}" -c "${INSTALLER}" 
+install_answers | sudo -u "${INSTANCE_USER}" bash -c "${INSTALLER}" 
 
 # install will automatically start service, we do not want it as we will use our own start script
-su - "${INSTANCE_USER}" -c "${INSTANCE_DIR}/install/bin/cov-im-ctl stop"
+sudo -u "${INSTANCE_USER}" bash -c "${INSTANCE_DIR}/install/bin/cov-im-ctl stop"
 
