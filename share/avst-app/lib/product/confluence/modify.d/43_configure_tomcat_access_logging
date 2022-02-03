@@ -1,0 +1,44 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# if the config has specified to enable access logging
+if [[ ${CONFLUENCE_ENABLE_TOMCAT_ACCESS_LOG:-0} -eq 1 ]]; then
+
+    # set defaults to all logging values if they have not been specified
+    debug "confluence/modify.d/43_configure_tomcat_access_logging: enabling access logging"
+	TOMCAT_ACCESS_LOG_CLASS=${TOMCAT_ACCESS_LOG_CLASS:-"org.apache.catalina.valves.AccessLogValve"}
+	TOMCAT_ACCESS_LOG_DIRECTORY=${TOMCAT_ACCESS_LOG_DIRECTORY:-"logs"}
+	TOMCAT_ACCESS_LOG_PREFIX=${TOMCAT_ACCESS_LOG_PREFIX:-"conf_access_log"}
+	TOMCAT_ACCESS_LOG_SUFFIX=${TOMCAT_ACCESS_LOG_SUFFIX:-".log"}
+	TOMCAT_ACCESS_LOG_PATTERN=${TOMCAT_ACCESS_LOG_PATTERN:-"%t %{X-AUSERNAME}o %{User-Agent}i %h %m %r %b %s %D %I"}
+
+    # update server.xml and add in the logging values
+	augtool -LA ${AUGTOOL_DEBUG} <<EOF
+	set /augeas/load/xml/lens "Xml.lns"
+	set /augeas/load/xml/incl "${SERVER_XML_FILE}"
+	load
+	defvar server_xml "/files/${SERVER_XML_FILE}"
+	defvar service \$server_xml/Server/Service
+	print \$service/Engine
+	set \$service/Engine/Host/Context/Valve/#attribute/className "${TOMCAT_ACCESS_LOG_CLASS}"
+	set \$service/Engine/Host/Context/Valve/#attribute/directory "${TOMCAT_ACCESS_LOG_DIRECTORY}"
+	set \$service/Engine/Host/Context/Valve/#attribute/prefix "${TOMCAT_ACCESS_LOG_PREFIX}"
+	set \$service/Engine/Host/Context/Valve/#attribute/suffix "${TOMCAT_ACCESS_LOG_SUFFIX}"
+	set \$service/Engine/Host/Context/Valve/#attribute/pattern "${TOMCAT_ACCESS_LOG_PATTERN}"
+	save
+	print /augeas//error
+EOF
+
+fi

@@ -1,11 +1,25 @@
-Release 0.67, 4th May 2022
+Release 0.68, 3rd Feb 2022
+--------------------------
+
+Added support for enabling tomcat access logging for confluence, this is principly controlled via the CONFLUENCE_ENABLE_TOMCAT_ACCESS_LOG variable, a value of
+1 means that access logging should be enabled and a value of 0 means it should not.
+
+Below are additional avst-app config variables that can be used to set various elements of the logging config, they each have a default value that is also noted:
+* TOMCAT_ACCESS_LOG_CLASS - Defaults to "org.apache.catalina.valves.AccessLogValve"
+* TOMCAT_ACCESS_LOG_DIRECTORY - Defaults to "logs"
+* TOMCAT_ACCESS_LOG_PREFIX - Default to "conf_access_log"
+* TOMCAT_ACCESS_LOG_SUFFIX - Defaults to ".log"
+* TOMCAT_ACCESS_LOG_PATTERN - Defaults to "%t %{X-AUSERNAME}o %{User-Agent}i %h %m %r %b %s %D %I"
+
+Release 0.67, 4th May 2021
+--------------------------
 
 Expanded the logic that handles Synchrony driver path, previously SYNCHRONY_DRIVER_PATH had to be a fully qualified path to the database driver.
 The new logic now checks if the supplied path is a directory, if so it them looks for a single jar within the directory and if founds adds that file, if there are not exactly 1 file in that directory then avst-app errors out.  This will allow for upgrades without needing to hard code each new jar file name.
 
 Adding some additional exit codes to the README.MD, also updated some duplicate codes to use unique values
 
-Release 0.66, 22nd Feb 2022
+Release 0.66, 22nd Feb 2021
 ---------------------------
 
 Added support for setting <schema-name></schema-name> in jira dbconfig.xml if the database type is postgres and a schema name is set.
