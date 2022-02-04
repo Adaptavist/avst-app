@@ -1,4 +1,4 @@
-Release 0.68, 3rd Feb 2022
+Release 0.69, 3rd Feb 2022
 --------------------------
 
 Added support for enabling tomcat access logging for confluence, this is principly controlled via the CONFLUENCE_ENABLE_TOMCAT_ACCESS_LOG variable, a value of
@@ -10,6 +10,11 @@ Below are additional avst-app config variables that can be used to set various e
 * TOMCAT_ACCESS_LOG_PREFIX - Default to "conf_access_log"
 * TOMCAT_ACCESS_LOG_SUFFIX - Defaults to ".log"
 * TOMCAT_ACCESS_LOG_PATTERN - Defaults to "%t %{X-AUSERNAME}o %{User-Agent}i %h %m %r %b %s %D %I"
+
+Release 0.68, 10th Jun 2021
+---------------------------
+
+Changed the way commands are run as the instance owner, previously they were run using 'su' and have now been swaped over to use 'sudo'
 
 Release 0.67, 4th May 2021
 --------------------------
