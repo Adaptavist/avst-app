@@ -219,6 +219,8 @@ parse_installed_avst_app_version () {
     INIT_HOME="${INIT_HOME:-/etc}"
     if [[ -f "${INIT_HOME}/redhat-release" ]]; then
         INSTALLED_AVSTAPP_CMD='rpm -qi avst-app'
+    elif [[ -f "${INIT_HOME}/os-release" ]] && [[ $(grep 'Amazon Linux' /etc/os-release) ]]; then
+        INSTALLED_AVSTAPP_CMD='rpm -qi avst-app'
     elif [[ -f "${INIT_HOME}/debian_version" ]]; then
         INSTALLED_AVSTAPP_CMD='dpkg -s avst-app'
     else

@@ -24,6 +24,11 @@ else
         [[ -L "${INIT_HOME}/init.d/${INSTANCE_NAME}" ]] && rm -f "${INIT_HOME}/init.d/${INSTANCE_NAME}"
         echo 'initctl $1 $( basename $0 )' > "${INIT_HOME}/init.d/${INSTANCE_NAME}"
         chmod 755 "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+    elif [[ -f "${INIT_HOME}/os-release" ]] && [[ $(grep 'Amazon Linux' /etc/os-release) ]]; then
+        debug "Upstart files for Amazon Linux"
+        [[ -L "${INIT_HOME}/init.d/${INSTANCE_NAME}" ]] && rm -f "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+        echo 'initctl $1 $( basename $0 )' > "${INIT_HOME}/init.d/${INSTANCE_NAME}"
+        chmod 755 "${INIT_HOME}/init.d/${INSTANCE_NAME}"
     elif [[ -f "${INIT_HOME}/debian_version" ]]; then
         debug "Upstart files for Debian"
         (

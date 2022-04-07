@@ -46,6 +46,8 @@ else
     # if a RHEL based system use a second start on stanza as "manual" is not valid
     if [[ -f /etc/redhat-release ]]; then
         START_DIRECTIVE="start on never"
+    elif [[ -f "${INIT_HOME}/os-release" ]] && [[ $(grep 'Amazon Linux' /etc/os-release) ]]; then
+        START_DIRECTIVE="start on never"
     else
         START_DIRECTIVE="manual"
     fi

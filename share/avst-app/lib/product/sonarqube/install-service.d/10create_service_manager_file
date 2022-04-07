@@ -20,6 +20,8 @@ SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
 SYSTEMD_FILE='sonarqube-systemd.service'
 if [[ -f "${INIT_HOME}/redhat-release" ]]; then
     UPSTART_FILE='upstart-redhat.conf'
+elif [[ -f "${INIT_HOME}/os-release" ]] && [[ $(grep 'Amazon Linux' /etc/os-release) ]]; then
+    UPSTART_FILE='upstart-redhat.conf'
 elif [[ -f "${INIT_HOME}/debian_version" ]]; then
     UPSTART_FILE='upstart-debian.conf'
 else
