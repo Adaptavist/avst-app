@@ -85,7 +85,7 @@ function build-package () {
     if [[ ${pkg} == deb ]]; then
       ADDITIONAL_DEPS="-d augeas-tools -d dos2unix"
     else
-      ADDITIONAL_DEPS="-d ruby-augeas -d dos2unix"
+      ADDITIONAL_DEPS="-d augeas -d dos2unix"
     fi
     fpm \
       -s dir \
