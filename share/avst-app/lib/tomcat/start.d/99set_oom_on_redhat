@@ -14,8 +14,10 @@
 # limitations under the License.
 
 # Try hard not to be killed in Out-Of-Memory situations on RedHat, 
-# Ubuntu supports this setting inside .conf file
+# or Amazon Linux, Ubuntu supports this setting inside .conf file
 if [[ -f '/etc/redhat-release' ]]; then
+    pgrep -f "${INSTANCE_NAME}" | while read PID; do echo -17 > /proc/$PID/oom_adj; done
+elif [[ -f "${INIT_HOME}/os-release" ]] && [[ $(grep 'Amazon Linux' /etc/os-release) ]]; then
     pgrep -f "${INSTANCE_NAME}" | while read PID; do echo -17 > /proc/$PID/oom_adj; done
 fi
 
