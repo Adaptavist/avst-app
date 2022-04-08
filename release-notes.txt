@@ -1,3 +1,8 @@
+Release 0.70, 8th Apr 2022
+--------------------------
+
+Added basic support for Amazon Linux
+
 Release 0.69, 3rd Feb 2022
 --------------------------
 
