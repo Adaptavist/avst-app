@@ -13,33 +13,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DISABLE_SEARCH_SECURITY="${DISABLE_SEARCH_SECURITY:--1}"
 parse_and_test_version ".tar.gz"
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.5.2' '<' '${VERSION}'" )
 # if ES is required ensure that we are running a version that supports it
 if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
     if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
         
+        # BitBucket >= 7.21.0 used OpenSearch instead of ElasticSearch,
+        VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '>' '${VERSION}'" )
+        if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
+            SEARCH_APPLICATION="opensearch"
+            SEARCH_SOURCE_CONFIG_DIR="config"
+        else
+            SEARCH_APPLICATION="elasticsearch"
+            SEARCH_SOURCE_CONFIG_DIR="config-template"
+        fi
+
         # Bitbucket >= 5.7.0 used ElasticSearch 5, set files to copy and argument letter accordingly
         VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.6.99' '<' '${VERSION}'" )
         if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
             # setup jvm.options
-            if [[ ! -d "${INSTALL_DIR}/elasticsearch/config" ]]; then
-                mkdir -p "${INSTALL_DIR}/elasticsearch/config"
+            if [[ ! -d "${INSTALL_DIR}/${SEARCH_APPLICATION}/config" ]]; then
+                mkdir -p "${INSTALL_DIR}/${SEARCH_APPLICATION}/config"
             fi
-            if [[ ! -f "${INSTALL_DIR}/elasticsearch/config/jvm.options" ]]; then
-                if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" ]]; then
-                    fatal "Search service installation failed. ${INSTALL_DIR}/elasticsearch/config/jvm.options not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/jvm.options"
+            if [[ ! -f "${INSTALL_DIR}/${SEARCH_APPLICATION}/config/jvm.options" ]]; then
+                if [[ ! -f "${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/jvm.options" ]]; then
+                    fatal "Search service installation failed. ${INSTALL_DIR}/${SEARCH_APPLICATION}/config/jvm.options not present and can not find ${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/jvm.options"
                     exit 38
                 fi
-                cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
-                chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/config/jvm.options"
+                cp "${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/jvm.options" "${INSTALL_DIR}/${SEARCH_APPLICATION}/config/jvm.options"
+                chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/${SEARCH_APPLICATION}/config/jvm.options"
             fi
             # set files to copy and arg letter
-            ES_FILES_TO_COPY=('elasticsearch.yml' 'log4j2.properties')
+            ES_FILES_TO_COPY=("${SEARCH_APPLICATION}.yml" 'log4j2.properties')
             ES_CONFIG_ARG="E"
         else
             # set files to copy and arg letter
-            ES_FILES_TO_COPY=('elasticsearch.yml')
+            ES_FILES_TO_COPY=("${SEARCH_APPLICATION}.yml")
             ES_CONFIG_ARG="D"
         fi
 
@@ -51,17 +62,17 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
 
         # change ownership of install locations
         if [[ -d "${INSTALL_DIR}/elasticsearch/" ]]; then
-            chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/elasticsearch/"
+            chown -R "${INSTANCE_USER}:${INSTANCE_GROUP}" "${INSTALL_DIR}/${SEARCH_APPLICATION}/"
         fi
         
         # loop throught all the files to copy
         for COPY_FILE in "${ES_FILES_TO_COPY[@]}"; do
             if [[ ! -f "${HOME_DIR}/shared/search/${COPY_FILE}" ]]; then
-                if [[ ! -f "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" ]]; then
-                    fatal "Search service installation failed. ${HOME_DIR}/shared/search/${COPY_FILE} not present and can not find ${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}"
+                if [[ ! -f "${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/${COPY_FILE}" ]]; then
+                    fatal "Search service installation failed. ${HOME_DIR}/shared/search/${COPY_FILE} not present and can not find ${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/${COPY_FILE}"
                     exit 38
                 fi
-                cp "${INSTALL_DIR}/elasticsearch/config-template/${COPY_FILE}" "${HOME_DIR}/shared/search/${COPY_FILE}"
+                cp "${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/${COPY_FILE}" "${HOME_DIR}/shared/search/${COPY_FILE}"
                 chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${HOME_DIR}/shared/search/${COPY_FILE}"
             fi
         done
@@ -71,12 +82,12 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
         SEARCH_SERVICE_MAX_OPEN_FILES="${SEARCH_SERVICE_MAX_OPEN_FILES:-${SERVICE_MAX_OPEN_FILES}}"
         SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
         SEARCH_LOG_DIR="${SEARCH_LOG_DIR:-${HOME_DIR}/log/search}"
-        SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/elasticsearch/bin}"
+        SEARCH_BIN_DIR="${SEARCH_BIN_DIR:-${INSTALL_DIR}/${SEARCH_APPLICATION}/bin}"
 
         # Bitbucket >= 6.0.0 uses ElasticSearch 6.5, path.conf has been replaced by the environment variable ES_PATH_CONF
         VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '5.16.99' '<' '${VERSION}'" )
         if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
-            cp "${INSTALL_DIR}/elasticsearch/config-template/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
+            cp "${INSTALL_DIR}/${SEARCH_APPLICATION}/${SEARCH_SOURCE_CONFIG_DIR}/jvm.options" "${SEARCH_HOME_DIR}/jvm.options"
             chown "${INSTANCE_USER}:${INSTANCE_GROUP}" "${SEARCH_HOME_DIR}/jvm.options"
             CONFIG_ARG_PATH_CONF=""
             ENV_PATH_CONF="ES_PATH_CONF=${SEARCH_HOME_DIR}"
@@ -96,6 +107,29 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
             debug "bitbucket/install-service/install_elasticsearch_service: Not adding JAVA_HOME to ES Service configuration"
         fi
 
+        # BitBucket >= 7.21.0 used OpenSearch and needs BB home defined        
+        VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '>' '${VERSION}'" )
+        if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
+            # add the BITBUCKET_HOME Env Variable into the Unit file
+            ENV_PATH_CONF="JAVA_HOME=${SEARCH_JAVA_HOME} BITBUCKET_HOME=${HOME_DIR} OPENSEARCH_PATH_CONF=${SEARCH_HOME_DIR}"
+            debug "bitbucket/install-service/install_elasticsearch_service: adding BITBUCKET_HOME environment variable to ES Service configuration"
+
+            # in addition we can enable/disable security in opensearch
+            if [[ ${DISABLE_SEARCH_SECURITY} -eq 1 ]]; then
+                # remove any current config relating to security being disabled the security
+                sed -i  '/^plugins.security.disabled:/d' ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
+                # set security disabled to true
+                echo "plugins.security.disabled: true" >>  ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
+            elif [[ ${DISABLE_SEARCH_SECURITY} -eq 1  ]]; then
+                # remove any current config relating to security being disabled the security
+                sed -i  '/^plugins.security.disabled:/d' ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
+                # set security disabled to true
+                echo "plugins.security.disabled: false" >>  ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
+            fi
+        else
+            debug "bitbucket/install-service/install_elasticsearch_service: Not adding BITBUCKET_HOME to ES Service configuration"
+        fi
+
         if [ -L /sbin/init ] &&  [[ $(readlink /sbin/init) == *"systemd"* ]]; then
             SYSTEMD_HOME="${SYSTEMD_HOME:-/etc/systemd/system/}"
             cd "${SYSTEMD_HOME}"
@@ -111,6 +145,7 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
                 sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
                 sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
                 sed "s#<ENV_PATH_CONF>#Environment=${ENV_PATH_CONF}#g" | \
+                sed "s#<SEARCH_APPLICATION>#${SEARCH_APPLICATION}#g" | \
                 sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.service"
         else
             INIT_HOME="${INIT_HOME:-/etc}"
@@ -124,6 +159,7 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
                 sed "s#<SEARCH_HOME_DIR>#${SEARCH_HOME_DIR}#g" | \
                 sed "s#<CONFIG_ARG_PATH_CONF>#${CONFIG_ARG_PATH_CONF}#g" | \
                 sed "s#<ENV_PATH_CONF>#env ${ENV_PATH_CONF}#g" | \
+                sed "s#<SEARCH_APPLICATION>#${SEARCH_APPLICATION}#g" | \
                 sed "s#<CONFIG_ARG>#${ES_CONFIG_ARG}#g" > "${SEARCH_SERVICE_NAME}.conf"
             AND_SEARCH_SERVICE="and started ${SEARCH_SERVICE_NAME}"        
         fi
