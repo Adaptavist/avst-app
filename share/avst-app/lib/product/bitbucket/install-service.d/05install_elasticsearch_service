@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DISABLE_SEARCH_SECURITY="${DISABLE_SEARCH_SECURITY:--1}"
 parse_and_test_version ".tar.gz"
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '4.5.2' '<' '${VERSION}'" )
 # if ES is required ensure that we are running a version that supports it
@@ -107,7 +106,7 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
             debug "bitbucket/install-service/install_elasticsearch_service: Not adding JAVA_HOME to ES Service configuration"
         fi
 
-        # BitBucket >= 7.21.0 used OpenSearch and needs BB home defined        
+        # BitBucket >= 7.21.0 used OpenSearch and needs BB home defined
         VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '>' '${VERSION}'" )
         if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
             # add the BITBUCKET_HOME Env Variable into the Unit file

@@ -15,6 +15,7 @@
 
 # BitBucket >= 7.21.0 uses OpenSearch and we can enable/disable security   
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '>' '${VERSION}'" )
+DISABLE_SEARCH_SECURITY="${DISABLE_SEARCH_SECURITY:--1}"
 SEARCH_APPLICATION="opensearch"
 SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
