@@ -38,3 +38,23 @@ else
     	debug "bitbucket/update/elasticsearch_upgrade: New version of ES is < 5.7.0, no action needed"
     fi
 fi
+
+
+OLD_VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '<' '${OLD_VERSION}'" )
+NEW_VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '<' '${VERSION}'" )
+# if the old version was running >=7.21.0  there is nothing to do
+if [[ "$(get_std_return ${OLD_VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+	debug "bitbucket/update/elasticsearch_upgrade: Old version is already using opensearch, no action needed"
+else
+	# if the old version was < 7.21.0 and the new version is >= 7.21.0 remove log config file
+    if [[ "$(get_std_return ${NEW_VERSIONS_COMPARED_RESULT})" == "0" ]]; then
+    	if [[ -f "${HOME_DIR}/shared/search/log4j2.properties" ]]; then
+            debug "bitbucket/update/elasticsearch_upgrade: attempting to remove ${HOME_DIR}/shared/search/log4j2.properties"
+            rm -f "${HOME_DIR}/shared/search/log4j2.properties"
+        else
+            debug "bitbucket/update/elasticsearch_upgrade: No log config file to remove"
+    	fi
+    else
+    	debug "bitbucket/update/elasticsearch_upgrade: New version of ES is < 7.21.0, no action needed"
+    fi
+fi

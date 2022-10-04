@@ -82,3 +82,4 @@ EOF
 else
     debug "bitbucket/modify/setup_elasticsearch: skipping as bitbucket < 5 uses server.xml for configuration"
 fi
+

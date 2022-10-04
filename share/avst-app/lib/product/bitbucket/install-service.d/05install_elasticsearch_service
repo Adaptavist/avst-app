@@ -113,19 +113,6 @@ if [[ ${ENABLE_ELASTICSEARCH:-1} -eq 1 ]]; then
             # add the BITBUCKET_HOME Env Variable into the Unit file
             ENV_PATH_CONF="JAVA_HOME=${SEARCH_JAVA_HOME} BITBUCKET_HOME=${HOME_DIR} OPENSEARCH_PATH_CONF=${SEARCH_HOME_DIR}"
             debug "bitbucket/install-service/install_elasticsearch_service: adding BITBUCKET_HOME environment variable to ES Service configuration"
-
-            # in addition we can enable/disable security in opensearch
-            if [[ ${DISABLE_SEARCH_SECURITY} -eq 1 ]]; then
-                # remove any current config relating to security being disabled the security
-                sed -i  '/^plugins.security.disabled:/d' ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
-                # set security disabled to true
-                echo "plugins.security.disabled: true" >>  ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
-            elif [[ ${DISABLE_SEARCH_SECURITY} -eq 1  ]]; then
-                # remove any current config relating to security being disabled the security
-                sed -i  '/^plugins.security.disabled:/d' ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
-                # set security disabled to true
-                echo "plugins.security.disabled: false" >>  ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml
-            fi
         else
             debug "bitbucket/install-service/install_elasticsearch_service: Not adding BITBUCKET_HOME to ES Service configuration"
         fi
