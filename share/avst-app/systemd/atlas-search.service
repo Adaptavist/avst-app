@@ -11,8 +11,8 @@ User=<INSTANCE_USER>
 Group=<INSTANCE_GROUP>
 Type=forking
 <ENV_PATH_CONF>
-PIDFile=<SEARCH_HOME_DIR>/elasticsearch.pid
-ExecStart=<SEARCH_BIN_DIR>/elasticsearch -d -p <SEARCH_HOME_DIR>/elasticsearch.pid <CONFIG_ARG_PATH_CONF> -<CONFIG_ARG>path.logs=<SEARCH_LOG_DIR> -<CONFIG_ARG>path.data=<SEARCH_HOME_DIR>/data
+PIDFile=<SEARCH_HOME_DIR>/<SEARCH_APPLICATION>.pid
+ExecStart=<SEARCH_BIN_DIR>/<SEARCH_APPLICATION> -d -p <SEARCH_HOME_DIR>/<SEARCH_APPLICATION>.pid <CONFIG_ARG_PATH_CONF> -<CONFIG_ARG>path.logs=<SEARCH_LOG_DIR> -<CONFIG_ARG>path.data=<SEARCH_HOME_DIR>/data
 ExecStop=/usr/bin/kill -15 $MAINPID
 ExecStopPost=/bin/sleep 5
 Restart=always
