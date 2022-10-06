@@ -1,0 +1,66 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# BitBucket >= 7.21.0 uses OpenSearch and we can enable/disable security   
+VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '7.20.99' '>' '${VERSION}'" )
+DISABLE_SEARCH_SECURITY="${DISABLE_SEARCH_SECURITY:--1}"
+SEARCH_APPLICATION="opensearch"
+SEARCH_HOME_DIR="${SEARCH_HOME_DIR:-${HOME_DIR}/shared/search}"
+if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "1" ]]; then
+    if [[ -f ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml ]]; then
+        # in addition we can enable/disable security in opensearch
+        if [[ ${DISABLE_SEARCH_SECURITY} -eq 1 ]]; then
+            # remove any current config relating to security being disabled the security
+            sed -i  '/^plugins.security.disabled:/d' ${SEARCH_HOME_DIR}/${SEARCH_APPLICATION}.yml
+            # set security disabled to true
+            echo "plugins.security.disabled: true" >>  ${SEARCH_HOME_DIR}/${SEARCH_APPLICATION}.yml
+        elif [[ ${DISABLE_SEARCH_SECURITY} -eq 0  ]]; then
+            # remove any current config relating to security being disabled the security
+            sed -i  '/^plugins.security.disabled:/d' ${SEARCH_HOME_DIR}/${SEARCH_APPLICATION}.yml
+            # set security disabled to false
+            echo "plugins.security.disabled: false" >>  ${SEARCH_HOME_DIR}/${SEARCH_APPLICATION}.yml
+        fi
+
+        # check if opensearch config includes TLS certs, if so confirm if they are present
+        if [[  ${DISABLE_SEARCH_SECURITY} -ne 1 ]]; then
+            INPLACE_SEARCH_CERT=$(grep plugins.security.ssl.transport.pemcert_filepath ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml | awk -F\: '{print $2}' | sed 's/ //g')
+            INPLACE_SEARCH_KEY=$(grep plugins.security.ssl.transport.pemkey_filepath ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml | awk -F\: '{print $2}' | sed 's/ //g')
+            INPLACE_SEARCH_CA=$(grep plugins.security.ssl.transport.pemtrustedcas_filepath ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml | awk -F\: '{print $2}' | sed 's/ //g')
+            if [[ ! -z ${INPLACE_SEARCH_CERT} ]]; then
+                if [[ ! -f ${INPLACE_SEARCH_CERT} ]]; then
+                    if [[ ! -f ${SEARCH_HOME_DIR}/${INPLACE_SEARCH_CERT} ]]; then
+                        fatal "ERROR: BB is running with ${SEARCH_APPLICATION} and has a TLS cert of \"${INPLACE_SEARCH_CERT}\" configured, but it DOES NOT seem to exist"
+                    fi
+                fi
+            fi
+            if [[ ! -z ${INPLACE_SEARCH_KEY} ]]; then
+                if [[ ! -f ${INPLACE_SEARCH_KEY} ]]; then
+                    if [[ ! -f ${SEARCH_HOME_DIR}/${INPLACE_SEARCH_KEY} ]]; then
+                        fatal "ERROR: BB is running with ${SEARCH_APPLICATION} and has a TLS key of \"${INPLACE_SEARCH_KEY}\" configured, but it DOES NOT seem to exist"
+                    fi
+                fi
+            fi
+            if [[ ! -z ${INPLACE_SEARCH_CA} ]]; then
+                if [[ ! -f ${INPLACE_SEARCH_CA} ]]; then
+                    if [[ ! -f ${SEARCH_HOME_DIR}/${INPLACE_SEARCH_CA} ]]; then
+                        fatal "ERROR: BB is running with ${SEARCH_APPLICATION} and has a TLS CA file of \"${INPLACE_SEARCH_CA}\" configured, but it DOES NOT seem to exist"
+                    fi
+                fi
+            fi
+        fi
+    else 
+        warn "bitbucket/modify/secure_search: unable to find ${HOME_DIR}/shared/search/${SEARCH_APPLICATION}.yml"
+    fi    
+fi
