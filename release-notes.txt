@@ -1,3 +1,18 @@
+Release 0.71, 6th October 2022
+------------------------------
+
+Added basic support for local Opensearch as shipped with BB >= 7.21.0
+
+As the shipped Opensearch version has the security plugin (TLS and more) enabled by default a new avst-app config variable has been added:
+* DISABLE_SEARCH_SECURITY - defaults to -1 (ignore whatever is already set and do nothing)
+
+This new variable can be used to disable the Opensearch security plugin by setting it to 1, this adds "plugins.security.disabled: true" into
+the opensearch.yml, alternativly setting it to 0 will add "plugins.security.disabled: false" to the yaml.
+
+If the security plugin is NOT disabled them the code will check if the configired TLS cert,key and ca are present, if not it will throw a error
+
+PLEASE NOTE: It is not recommended to disable the security plugin, instead TLS cert, key and ca files should be added to help secure the Opensearch config, the flag has been provided in order to turn off security in an emergency if access in the old (non TLS) way is required
+
 Release 0.70, 8th Apr 2022
 --------------------------
 
