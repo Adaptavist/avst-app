@@ -1,3 +1,18 @@
+Release 0.72, 15th May 2023
+---------------------------
+
+Added support for Confluence DC node discovery via "AWS", this discovers nodes by calling the EC2:DescibeInstances API and optionally
+filtering those results by membership of a Security Group and/or Tags
+The following config options are added to support this
+* CLUSTER_CONFIG_MODE - this can be set to 'tcp' to support the current method of joining via a list of peers or 'aws' to use the new method
+                    	if not set this defaults to 'tcp'
+* CLUSTER_AWS_IAM_ROLE - The name of the IAM role to be used to acces AWS
+* CLUSTER_AWS_REGION - the AWS region to search for nodes
+* CLUSTER_AWS_HOST_HEADER - the host header to set, this is optional and should not usually be set, defaults to "ec2.amazonaws.com"
+* CLUSTER_AWS_SECURITY_GROUP_NAME - an option security group name to filter the results by
+* CLUSTER_AWS_TAG_KEY - an optional AWS tag key to filter the results by, if used also set CLUSTER_AWS_TAG_VALUE
+* CLUSTER_AWS_TAG_VALUE - an optional AWS tag value to filter results by, if used also set CLUSTER_AWS_TAG_KEY
+
 Release 0.71, 6th October 2022
 ------------------------------
 

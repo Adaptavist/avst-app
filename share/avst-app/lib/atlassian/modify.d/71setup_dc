@@ -19,6 +19,7 @@
 # -1 - Ignore i.e. do nothing
 
 DC_ENABLE="${DC_ENABLE:--1}"
+CLUSTER_CONFIG_MODE=${CLUSTER_CONFIG_MODE:-"tcp"}
 
 # TODO: Support more apps 
 
@@ -27,11 +28,12 @@ DC_ENABLE="${DC_ENABLE:--1}"
 function add_confluence_config_attrib() {
     FILE=$2
     ATTRIBUTE=$1
+    VALUE=${3:-"TODO"}
     findCommand="grep 'name=\"${ATTRIBUTE}\"' '${FILE}'"
     
     # check if the attribute is present, if not add it
     if [[ ! $( eval "${findCommand}") ]]; then
-        sed -i "s#</properties>#    <property name=\"${ATTRIBUTE}\">TODO</property>\n</properties>#" "${FILE}"
+        sed -i "s#</properties>#    <property name=\"${ATTRIBUTE}\">${VALUE}</property>\n</properties>#" "${FILE}"
         debug "atlassian/modify/setup_dc: confluence-configuration/properties/property/${ATTRIBUTE} is missing, attempting to add it"
     else
         debug "atlassian/modify/setup_dc: confluence-configuration/properties/property/${ATTRIBUTE} is present, skipping addition"
@@ -81,27 +83,10 @@ print /augeas//error
 EOF
             ;;
         'confluence')
-            # TODO: support more joining methods, currently only TCP/IP (list of nodes) is supported
             CLUSTER_CONFIG_FILE="${HOME_DIR}/confluence.cfg.xml"
-            CLUSTER_NODE_INTERFACE=${CLUSTER_NODE_INTERFACE:-"eth0"}
             CLUSTER_SHARED_HOME=${CLUSTER_SHARED_HOME:-}
             CLUSTER_NAME=${CLUSTER_NAME:-}
-            CLUSTER_PEERS=${CLUSTER_PEERS:-}
             CLUSTER_NODE_ID=${CLUSTER_NODE_ID:-}
-            if [ -z "${CLUSTER_CONFIG_FILE}" \
-                -o -z "${CLUSTER_NODE_INTERFACE}" \
-                -o -z "${CLUSTER_SHARED_HOME}" \
-                -o -z "${CLUSTER_NAME}" \
-                -o -z "${CLUSTER_PEERS}" ]; then
-                fatal "
-                DC_ENABLE is set, but one or all of the mandatory variables are not set in:
-                CLUSTER_CONFIG_FILE
-                CLUSTER_NODE_ADAPTER
-                CLUSTER_SHARED_HOME
-                CLUSTER_NAME
-                CLUSTER_PEERS"
-                exit 55
-            fi
 
             # work out if we are setting node "ID"
             if [[ ! -z ${CLUSTER_NODE_ID} ]]; then
@@ -111,18 +96,37 @@ EOF
                 NODE_ID_SET=""
             fi
 
-            debug "atlassian/modify/setup_dc: Attempting to modify confluence confluence.cfg.xml for DC"
+            # TCP Node detection
+            if [[ ${CLUSTER_CONFIG_MODE} == "tcp" ]]; then
+                CLUSTER_NODE_INTERFACE=${CLUSTER_NODE_INTERFACE:-"eth0"}    
+                CLUSTER_PEERS=${CLUSTER_PEERS:-}
+                if [ -z "${CLUSTER_CONFIG_FILE}" \
+                    -o -z "${CLUSTER_NODE_INTERFACE}" \
+                    -o -z "${CLUSTER_SHARED_HOME}" \
+                    -o -z "${CLUSTER_NAME}" \
+                    -o -z "${CLUSTER_PEERS}" ]; then
+                    fatal "
+                    DC_ENABLE is set, but one or all of the mandatory variables are not set in:
+                    CLUSTER_CONFIG_FILE
+                    CLUSTER_NODE_ADAPTER
+                    CLUSTER_SHARED_HOME
+                    CLUSTER_NAME
+                    CLUSTER_PEERS"
+                    exit 55
+                fi
 
-            # TODO - do this in augeas!
-            add_confluence_config_attrib "confluence.cluster" "${CLUSTER_CONFIG_FILE}"
-            add_confluence_config_attrib "confluence.cluster.home" "${CLUSTER_CONFIG_FILE}"
-            add_confluence_config_attrib "confluence.cluster.interface" "${CLUSTER_CONFIG_FILE}"
-            add_confluence_config_attrib "confluence.cluster.join.type" "${CLUSTER_CONFIG_FILE}"
-            add_confluence_config_attrib "confluence.cluster.name" "${CLUSTER_CONFIG_FILE}"
-            add_confluence_config_attrib "confluence.cluster.peers" "${CLUSTER_CONFIG_FILE}"
+                debug "atlassian/modify/setup_dc: Attempting to modify confluence confluence.cfg.xml for DC"
 
-            # set confluence config for DC
-            augtool -LA ${AUGTOOL_DEBUG} <<EOF
+                # TODO - do this in augeas!
+                add_confluence_config_attrib "confluence.cluster" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.home" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.interface" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.join.type" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.name" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.peers" "${CLUSTER_CONFIG_FILE}"
+
+                # set confluence config for DC
+                augtool -LA ${AUGTOOL_DEBUG} <<EOF
 set /augeas/load/xml/lens "Xml.lns"
 set /augeas/load/xml/incl "${CLUSTER_CONFIG_FILE}"
 load
@@ -133,10 +137,118 @@ set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#a
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.join.type']/#text "tcp_ip"
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/#text "${CLUSTER_NAME}"
 set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/#text "${CLUSTER_PEERS}"
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.region']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.iam.role']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.host.header']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name=confluence.cluster.aws.tag.key']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.value']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='cconfluence.cluster.aws.security.group.name']/
 ${NODE_ID_SET}
 save
 print /augeas//error
 EOF
+            # AWS IAM Based Detection
+            elif [[ ${CLUSTER_CONFIG_MODE} == "aws" ]]; then
+
+                ## This requires that the EC2 has a IAM role attached to it that has "DescibeInstances" permssions
+                ## currently only IAM role not key access is supported.
+
+                CLUSTER_AWS_IAM_ROLE=${CLUSTER_AWS_IAM_ROLE:-}
+                CLUSTER_AWS_HOST_HEADER=${CLUSTER_AWS_HOST_HEADER:-"ec2.amazonaws.com"}
+                CLUSTER_AWS_REGION=${CLUSTER_AWS_REGION:-}
+                CLUSTER_AWS_TAG_KEY=${CLUSTER_AWS_TAG_KEY:-}
+                CLUSTER_AWS_TAG_VALUE=${CLUSTER_AWS_TAG_VALUE:-}
+                CLUSTER_AWS_SECURITY_GROUP_NAME=${CLUSTER_AWS_SECURITY_GROUP_NAME:-}
+                CLUSTER_NODE_INTERFACE=${CLUSTER_NODE_INTERFACE:-}
+
+                if [ -z "${CLUSTER_CONFIG_FILE}" \
+                    -o -z "${CLUSTER_AWS_IAM_ROLE}" \
+                    -o -z "${CLUSTER_SHARED_HOME}" \
+                    -o -z "${CLUSTER_NAME}" \
+                    -o -z "${CLUSTER_AWS_REGION}" ]; then
+                    fatal "
+                    DC_ENABLE is set, but one or all of the mandatory variables are not set in:
+                    CLUSTER_CONFIG_FILE
+                    CLUSTER_AWS_IAM_ROLE
+                    CLUSTER_SHARED_HOME
+                    CLUSTER_NAME
+                    CLUSTER_AWS_REGION
+
+                    Please note in addition the following optional vartiables are also avaliable:
+                    CLUSTER_AWS_SECURITY_GROUP_NAME
+                    CLUSTER_AWS_TAG_KEY
+                    CLUSTER_AWS_TAG_VALUE
+                    CLUSTER_NODE_INTERFACE"
+
+                    exit 55
+                fi
+
+                debug "atlassian/modify/setup_dc: Attempting to modify confluence confluence.cfg.xml for DC"
+
+                # TODO - do this in augeas!
+                add_confluence_config_attrib "confluence.cluster" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.home" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.join.type" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.name" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.aws.host.header" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.aws.region" "${CLUSTER_CONFIG_FILE}"
+                add_confluence_config_attrib "confluence.cluster.aws.iam.role" "${CLUSTER_CONFIG_FILE}"
+
+                # work out if we are adding the nic
+                if [[ ! -z ${CLUSTER_NODE_INTERFACE} ]]; then
+                    add_confluence_config_attrib "confluence.cluster.interface" "${CLUSTER_CONFIG_FILE}"
+                    CLUSTER_AWS_INTERFACE_SET="set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.interface']/#text "${CLUSTER_NODE_INTERFACE}""
+                else
+                    CLUSTER_AWS_INTERFACE_SET="rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.interface']/"
+                fi
+                # work out if we are setting tag key
+                if [[ ! -z ${CLUSTER_AWS_TAG_KEY} ]]; then
+                    add_confluence_config_attrib "confluence.cluster.aws.tag.key" "${CLUSTER_CONFIG_FILE}"
+                    CLUSTER_AWS_TAG_KEY_SET="set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.key']/#text "${CLUSTER_AWS_TAG_KEY}""
+                else
+                    CLUSTER_AWS_TAG_KEY_SET="rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.key']/"
+                fi
+                # work out if we are setting tag value
+                if [[ ! -z ${CLUSTER_AWS_TAG_VALUE} ]]; then
+                    add_confluence_config_attrib "confluence.cluster.aws.tag.value" "${CLUSTER_CONFIG_FILE}"
+                    CLUSTER_AWS_TAG_VALUE_SET="set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.value']/#text "${CLUSTER_AWS_TAG_VALUE}""
+                else
+                    CLUSTER_AWS_TAG_VALUE_SET="rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.value']/"
+                fi
+                # work out if we are setting tag key
+                if [[ ! -z ${CLUSTER_AWS_SECURITY_GROUP_NAME} ]]; then
+                    add_confluence_config_attrib "confluence.cluster.aws.security.group.name" "${CLUSTER_CONFIG_FILE}"
+                    CLUSTER_AWS_SG_SET="set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.security.group.name']/#text "${CLUSTER_AWS_SECURITY_GROUP_NAME}""
+                else
+                    CLUSTER_AWS_SG_SET="rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.security.group.name']/"
+                fi
+
+
+                # set confluence config for DC
+                augtool -LA ${AUGTOOL_DEBUG} <<EOF
+set /augeas/load/xml/lens "Xml.lns"
+set /augeas/load/xml/incl "${CLUSTER_CONFIG_FILE}"
+load
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/setupType/#text "cluster"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster']/#text "true"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.home']/#text "${CLUSTER_SHARED_HOME}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.host.header']/#text "${CLUSTER_AWS_HOST_HEADER}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.join.type']/#text "aws"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/#text "${CLUSTER_NAME}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.region']/#text "${CLUSTER_AWS_REGION}"
+set /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.iam.role']/#text "${CLUSTER_AWS_IAM_ROLE}"
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/
+${NODE_ID_SET}
+${CLUSTER_AWS_INTERFACE_SET}
+${CLUSTER_AWS_TAG_KEY_SET}
+${CLUSTER_AWS_TAG_VALUE_SET}
+${CLUSTER_AWS_SG_SET}
+save
+print /augeas//error
+EOF
+            else
+                warn "Unknown cluster config mode, ${CLUSTER_CONFIG_MODE}, detected, cluster setup will be skipped"
+            fi
             ;;
         'bitbucket')
            # TODO: support more joining methods, currently only TCP/IP (list of nodes) is supported
@@ -206,6 +318,12 @@ rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#at
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.name']/
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.peers']/
 rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.node.name']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.region']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.iam.role']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.host.header']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name=confluence.cluster.aws.tag.key']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='confluence.cluster.aws.tag.value']/
+rm /files${CLUSTER_CONFIG_FILE}/confluence-configuration/properties/property[#attribute/name='cconfluence.cluster.aws.security.group.name']/
 save
 print /augeas//error
 EOF
