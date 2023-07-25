@@ -27,7 +27,7 @@ fi
 VERSIONS_COMPARED_RESULT=$( run_cmd "version_comparison '6.4.99' '<' '${VERSION}'" )
 if [[ "$(get_std_return ${VERSIONS_COMPARED_RESULT})" == "0" ]]; then
     debug "synchrony/install.d/03expand_tarball: Confluence >=6.5 detected, including synchrony bin"
-    WILDCARDS_TO_EXTRACT="'*/bin/synchrony' '*/synchrony-standalone.jar' '*/postgresql-*.jar'"
+    WILDCARDS_TO_EXTRACT="'*/bin/synchrony' '*/synchrony-standalone.jar' '*/*postgresql-*.jar'"
 else
     debug "synchrony/install.d/03expand_tarball: Confluence <6.5 detected, excluding synchrony bin"
     WILDCARDS_TO_EXTRACT="'*/synchrony-standalone.jar' '*/postgresql-*.jar'"
