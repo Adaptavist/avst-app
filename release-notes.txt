@@ -1,3 +1,9 @@
+Release 0.73, 26th July 2023
+----------------------------
+
+Fixed the logic that extracts the PostgreSQL driver for standalone synchrony installs
+to work with the different naming convention used for the driver in Confluuence 8.0+
+
 Release 0.72, 15th May 2023
 ---------------------------
 
