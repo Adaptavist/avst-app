@@ -1,3 +1,11 @@
+Release 0.74, 21st Sep 2023
+---------------------------
+
+* Added logic to the bamboo startup to not set an ENDORSED_DIR if running a java version with a major number higher than 1, so
+anything with a number higher than 1.8 ( as 9 is not TLS we are not covering it)
+* added logic to bamboo startup when using jave 1.8 or below to honor custom ENDORSED_DIR and fallback to default if no custom 
+value is set
+
 Release 0.73, 26th July 2023
 ----------------------------
 

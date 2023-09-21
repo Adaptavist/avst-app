@@ -17,7 +17,13 @@ JVM_MINIMUM_MEMORY="${JVM_MINIMUM_MEMORY:-256m}"
 JVM_MAXIMUM_MEMORY="${JVM_MAXIMUM_MEMORY:-512m}"
 JVM_MAX_PERM_SIZE="${JVM_MAX_PERM_SIZE:-256m}"
 
-JAVA_ENDORSED_DIRS="${INSTALL_DIR}/endorsed"
+# java version after 1.8 no longer support passing endorsed_dirs
+JAVA_MAJOR_VERSION=$( run_cmd  java -version 2>&1 | awk -F '"' '/version/ {print $2}' | awk -F\. '{print $1}' )
+if [[ ${JAVA_MAJOR_VERSION} -gt 1 ]]; then
+    JAVA_ENDORSED_DIRS=""
+else
+    JAVA_ENDORSED_DIRS="${JAVA_ENDORSED_DIRS:-${INSTALL_DIR}/endorsed}"
+fi
 
 DEF_JAVA_BEHAVIORAL_OPTIONS=""
 DEF_JAVA_GC1_OPTIONS=""
