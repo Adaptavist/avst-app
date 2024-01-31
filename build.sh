@@ -2,6 +2,17 @@
 # Insipired by:
 #   https://stash.adaptavist.com/projects/ATB/repos/fpm-builder/browse/build-crowd.sh
 #   https://bitbucket.org/Adaptavist/fpm-puppet
+#
+#  https://systembash.com/simple-guide-to-signing-rpms-with-fpm/ - Quick guide to signing with FPM
+#
+#  This Script requires the following packages
+#  To Build the RPM:
+#     fpm - gem
+#     rpm-build - rpm
+#  To Sign the RPM:
+#     rpm-sign - rpm
+#     gpg - rpm
+
 
 # Pull in any RVM variables for Ruby to work
 [ -r /etc/profile.d/rvm.sh ] && . /etc/profile.d/rvm.sh
@@ -87,9 +98,11 @@ function build-package () {
     else
       ADDITIONAL_DEPS="-d augeas -d dos2unix"
     fi
+    # this step requires that ~/rpmmacros be configured with details of the desired GPG key
     fpm \
       -s dir \
       -t ${pkg} \
+      --rpm-sign \
       -n ${PKG_NAME} \
       --prefix ${INSTALL_PREFIX} \
       --version ${VERSION} \
