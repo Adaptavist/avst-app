@@ -1,3 +1,13 @@
+Release 0.75, 30th Apr 2024
+---------------------------
+
+Added logic to allow BitBucket upgrades to run 'restorecon' on the opensearch bin directory in order to reset SELINUX contexts, this
+assumes that the SELINUX context defaults for the location has already been set (by hand or via ansible auomation etc).
+
+This is controlled by 2 variables:
+* OPENSEARCH_RESTORE_SELINUX this controls if a 'restorecon' should be attempted, 0 means no and 1 means yes, value default to 0
+* OPENSEARCH_BIN_DIRECTORY, the location of the opensearch bin directory, default to "${INSTALL_DIR}/opensearch/bin"
+
 Release 0.74, 21st Sep 2023
 ---------------------------
 

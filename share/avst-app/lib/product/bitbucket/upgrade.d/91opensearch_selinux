@@ -1,0 +1,33 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# OPENSEARCH_RESTORE_SELINUX Possible values are:
+#  0 - Do NOT attempt to run "restorecon" on the OpenSearch bin directory
+#  1 - Attempt to run "restorecon" on the OpenSearch bin directory
+
+# by default this is designed to work with modern versions of bitbucket that uses
+# opensearch not elasticsearch, although this can be used with ES by
+# changing OPENSEARCH_BIN_DIRECTORY
+
+OPENSEARCH_RESTORE_SELINUX="${OPENSEARCH_RESTORE_SELINUX:-0}"
+OPENSEARCH_BIN_DIRECTORY="${OPENSEARCH_BIN_DIRECTORY:-${INSTALL_DIR}/opensearch/bin}"
+
+if [[ ${OPENSEARCH_RESTORE_SELINUX} -eq 1 ]]; then
+    debug "bitbucket/upgrade/opensearch_selinux: attempting to reset selinux context on ${OPENSEARCH_BIN_DIRECTORY}"
+    restorecon -irv ${OPENSEARCH_BIN_DIRECTORY}
+else
+    debug "bitbucket/upgrade/opensearch_selinux: Skipping selinux contextreset on ${OPENSEARCH_BIN_DIRECTORY}"
+fi
+
