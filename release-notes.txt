@@ -1,6 +1,10 @@
 Release 0.76, 4th June 2024
 ---------------------------
 
+Modified Sonarqube-systemd.service file:
+added new values required for newer versions
+references in the create_service_manager_file for sonarqube
+
 Added logic to allow configure modern sonarqube sonar.properties files for current versions.
 
 These are controlled by 4 variables:

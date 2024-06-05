@@ -6,13 +6,28 @@ Description=SonarQube (<INSTANCE>)
 After=syslog.target network.target
 
 [Service]
+Type=simple
+User=<INSTANCE_USER>
+Group=<INSTANCE_GROUP>
+#PermissionsStartOnly=true
 ExecStart=/usr/bin/avst-app <INSTANCE> start
-ExecStop=<WRAPPER_DIR>/sonar.sh stop
-ExecReload=<WRAPPER_DIR>/sonar.sh restart
+#ExecStop=/usr/bin/avst-app <INSTANCE> stop
+#ExecReload=<WRAPPER_DIR>/sonar.sh restart
+ExecStop=/usr/bin/pkill -15 -P $MAINPID
+ExecStopPost=/bin/sleep 5
 PIDFile=<WRAPPER_DIR>/./SonarQube.pid
-Type=forking
 Restart=always
 LimitNOFILE=<MAX_OPEN_FILES>
+LimitNPROC=<MAX_NPROC>
+TimeoutStartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+
+StandardOutput=syslog
+
 
 [Install]
 WantedBy=multi-user.target
