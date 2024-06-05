@@ -1,3 +1,19 @@
+Release 0.76, 4th June 2024
+---------------------------
+
+Added logic to allow configure modern sonarqube sonar.properties files for current versions.
+
+These are controlled by 4 variables:
+WEB_JAVA_OPTS
+CE_JAVA_OPTS
+SEARCH_JAVA_OPTS
+SEARCH_JAVA_ADD_OPTS
+
+* WEB_JAVA_OPTS, this controls the 'sonar.web.javaOpts' parameter in the sonar.properties file. Value required, default set
+* CE_JAVA_OPTS, this controls the 'sonar.ce.javaOpts' parameter in the sonar.properties file. Value required, default set
+* SEARCH_JAVA_OPTS, this controls the 'sonar.search.javaOpts' parameter in the sonar.properties file. Value required, default set
+* SEARCH_JAVA_ADD_OPTS, this controls the 'sonar.search.javaAdditionalOpts' parameter in the sonar.properties file. Value required, default set
+
 Release 0.75, 30th Apr 2024
 ---------------------------
 
