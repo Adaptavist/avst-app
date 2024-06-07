@@ -44,7 +44,7 @@ fi
     then
         cd "${SYSTEMD_HOME}"
         debug "sonarqube/service_manager/create_systemd_file: Creating systemd config file '${SYSTEMD_HOME}/${INSTANCE_NAME}.service'"
-        cat "${SHARE_DIR}/systemd/${SYSTEMD_FILE}" | sed "s#<WRAPPER_DIR>#${WRAPPER_DIR}#g"  | sed "s#<INSTANCE>#${INSTANCE_NAME}#g" | sed "s#<MAX_OPEN_FILES>#${SERVICE_MAX_OPEN_FILES}#g" > "${INSTANCE_NAME}.service"
+        cat "${SHARE_DIR}/systemd/${SYSTEMD_FILE}" | sed "s#<WRAPPER_DIR>#${WRAPPER_DIR}#g"  | sed "s#<INSTANCE>#${INSTANCE_NAME}#g" | sed "s#<INSTANCE_USER>#${INSTANCE_USER}#g" | sed "s#<INSTANCE_GROUP>#${INSTANCE_GROUP}#g" | sed "s#<MAX_OPEN_FILES>#${SERVICE_MAX_OPEN_FILES}#g" | sed "s#<MAX_NPROC>#${SERVICE_MAX_NPROC}#g" > "${INSTANCE_NAME}.service"
     else
         fatal "Only systems running systemd are supported at the moment"
         exit 99
