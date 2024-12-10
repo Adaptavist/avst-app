@@ -1,0 +1,44 @@
+#!/bin/bash
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+if [[ ! -z "${JIRA_LOGS_MANAGED:-}" ]]; then
+  JIRA_LOG_FILE="${INSTALL_DIR}/atlassian-jira/WEB-INF/classes/log4j.properties"
+  JIRA_LOGS_INFO_DEFAULT=INFO
+  JIRA_LOGS_DEBUG_DEFAULT=DEBUG
+
+  # if log4jproperties file does not exist, without this minimum, augeas will not work
+  if [[ ! -r "${JIRA_LOG_FILE}" ]]; then
+      echo "Could not find log4j.properties"
+  fi
+
+  # if the Logs are set to be managed, if not do not
+  if [[ "${JIRA_LOGS_MANAGED}" == true && ! -z "${JIRA_LOGS_SET:-}" ]]; then
+
+  sed -i -e 's|=${JIRA_LOGS_INFO_DEFAULT}|=${JIRA_LOGS_SET}|' -e 's|= ${JIRA_LOGS_INFO_DEFAULT}|= ${JIRA_LOGS_SET}|g' ${JIRA_LOG_FILE}
+  sed -i -e 's|=${JIRA_LOGS_DEBUG_DEFAULT}|=${JIRA_LOGS_SET}|' -e 's|= ${JIRA_LOGS_DEBUG_DEFAULT}|= ${JIRA_LOGS_SET}|g' ${JIRA_LOG_FILE}
+
+  debug "jira/modify/jira_log_managed: Log manager enabled, setting logs"
+
+  if [[ -z "${JIRA_LOGS_SET:-}" ]]; then
+    cat <<EOF
+One of the mandatory variables to set the DB up is missing, these are:
+JIRA_LOGS_SET
+EOF
+    exit 12
+fi
+
+
+  fi
+    
+fi
