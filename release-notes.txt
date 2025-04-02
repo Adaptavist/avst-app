@@ -1,3 +1,18 @@
+Release 0.75, 3rd April 2025
+----------------------------
+
+Added logic to control autologin cookie age in confluence and jira, this is controlled by 2 variables:
+  * MANAGE_AUTOLOGIN_COOKIE_AGE = flag to determine if avst-app will manage the cookie age, values are:
+    - 0 = not managed, this will have different behaviour between the apps:
+          - for Confluence this will attempt to remove autologin cookie age config from seraph-config.xml 
+            as by default this value does not exist
+          - for Jira this will attempt to restore the system default value in seraph-config.xml
+    - 1 = managed, attempt to add/modify autologin cookie age config in seraph-config.xml
+    - -1 = ignore, this ignores the config, leaving it in whatever state it already is
+  * AUTOLOGIN_COOKIE_AGE = variable to hold the cookie age, for jira this defaults to 1209600 
+      for confleunce it has no default
+
+
 Release 0.75, 30th Apr 2024
 ---------------------------
 

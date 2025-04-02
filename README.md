@@ -110,6 +110,8 @@ The following exit/return codes are used (as of 2014-10-09):
 * 53: Missing mandatory variables for OKTA
 * 55: Missing mandatory variables for DC
 * 56: Can't setup DC for unsupported product
+* 57: Can't setup autologin cookie age for unsupported product
+* 58: Can't setup autologin cookie age since no tiemout value is present
 * 60: Synchrony driver directory provides but there is not exactly one driver file inside
 * 61: Missing mandatory variables for Synchrony
 * 70: Specified OKTA driver does not exist
