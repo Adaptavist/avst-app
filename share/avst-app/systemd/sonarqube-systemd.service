@@ -1,18 +1,21 @@
 # avst-app - Adaptavist Application - Services
 
 [Unit]
-
-Description=SonarQube (<INSTANCE>)
+Description=SonarQube service
 After=syslog.target network.target
 
 [Service]
-ExecStart=/usr/bin/avst-app <INSTANCE> start
-ExecStop=<WRAPPER_DIR>/sonar.sh stop
-ExecReload=<WRAPPER_DIR>/sonar.sh restart
-PIDFile=<WRAPPER_DIR>/./SonarQube.pid
 Type=forking
+
+ExecStart=<WRAPPER_DIR>/sonar.sh start
+ExecStop=<WRAPPER_DIR>/sonar.sh stop
+
+User=<INSTANCE_USER>
+Group=<INSTANCE_GROUP>
 Restart=always
+
 LimitNOFILE=<MAX_OPEN_FILES>
+LimitNPROC=<MAX_NPROC>
 
 [Install]
 WantedBy=multi-user.target

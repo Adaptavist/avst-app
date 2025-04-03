@@ -53,6 +53,33 @@ if [[ -z "${DB_TIME_BETWEEN_EVICTIONS:-}" ]]; then
     warn "sonarqube/modify/modify_database_setup: DB_TIME_BETWEEN_EVICTIONS not set - setting to $DB_TIME_BETWEEN_EVICTIONS"
 fi
 
+##
+
+if [[ -z "${WEB_JAVA_OPTS:-}" ]]; then
+    WEB_JAVA_OPTS="-Xmx3G -Xms128m -XX:+HeapDumpOnOutOfMemoryError"
+    warn "sonarqube/modify/modify_database_setup: WEB_JAVA_OPTS not set - setting to $WEB_JAVA_OPTS"
+fi
+
+
+if [[ -z "${CE_JAVA_OPTS:-}" ]]; then
+    CE_JAVA_OPTS="-Xmx3G -Xms128m -XX:+HeapDumpOnOutOfMemoryError"
+    warn "sonarqube/modify/modify_database_setup: CE_JAVA_OPTS not set - setting to $CE_JAVA_OPTS"
+fi
+
+
+if [[ -z "${SEARCH_JAVA_OPTS:-}" ]]; then
+    SEARCH_JAVA_OPTS="-Xmx4G -Xms4G -XX:MaxDirectMemorySize=1G -XX:+HeapDumpOnOutOfMemoryError"
+    warn "sonarqube/modify/modify_database_setup: SEARCH_JAVA_OPTS not set - setting to $SEARCH_JAVA_OPTS"
+fi
+
+
+if [[ -z "${SEARCH_JAVA_ADD_OPTS:-}" ]]; then
+    SEARCH_JAVA_ADD_OPTS="-Dlog4j2.formatMsgNoLookups=true"
+    warn "sonarqube/modify/modify_database_setup: SEARCH_JAVA_OPTS not set - setting to $SEARCH_JAVA_ADD_OPTS"
+fi
+
+##
+
 # configure the DB setup in sonar.properties
 DB_CONFIG_FILE="${INSTALL_DIR}/conf/sonar.properties"
 
@@ -76,6 +103,15 @@ set \$config_file/sonar.jdbc.minIdle "${DB_MIN_POOL_IDLE}"
 set \$config_file/sonar.jdbc.maxWait "${DB_MAX_POOL_WAIT}"
 set \$config_file/sonar.jdbc.minEvictableIdleTimeMillis "${DB_MIN_EVICTION_IDLE}"
 set \$config_file/sonar.jdbc.timeBetweenEvictionRunsMillis "${DB_TIME_BETWEEN_EVICTIONS}"
+###
+set \$config_file/sonar.web.javaOpts "${WEB_JAVA_OPTS}"
+set \$config_file/sonar.ce.javaOpts "${CE_JAVA_OPTS}"
+set \$config_file/sonar.search.javaOpts "${SEARCH_JAVA_OPTS}"
+set \$config_file/sonar.search.javaAdditionalOpts "${SEARCH_JAVA_ADD_OPTS}"
+
+
+
+
 save
 print /augeas//error
 EOF
