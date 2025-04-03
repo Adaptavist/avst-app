@@ -1,0 +1,95 @@
+#!/bin/bash
+ 
+# Copyright 2015 Adaptavist.com Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+AUTOLOGIN_COOKIE_PARAM="autologin.cookie.age"
+MANAGE_AUTOLOGIN_COOKIE_AGE=${MANAGE_AUTOLOGIN_COOKIE_AGE:--1}
+LOG_LOCATION_PREFIX="atlassian/modify/manage_cookie_age"
+
+if [[ ${MANAGE_AUTOLOGIN_COOKIE_AGE} -eq -1 ]]; then
+    # if we are not managing the value, ignore it
+    debug "${LOG_LOCATION_PREFIX}: cookie management is set to ignore, no action will be taken"
+else
+    # if we are managing (either enabling or disabling) then
+    # set product specific variables and exit for unsupported products
+    AUGEAS_DOC=""
+    case "${PRODUCT}" in
+        "jira")
+            SEREPH_CONFIG_FILE="${INSTALL_DIR}/atlassian-jira/WEB-INF/classes/seraph-config.xml"
+            JIRA_COOKIE_AGE_DEFAULT=1209600
+            AUTOLOGIN_COOKIE_AGE=${AUTOLOGIN_COOKIE_AGE:-${JIRA_COOKIE_AGE_DEFAULT}}
+            ;;
+        "confluence")
+            SEREPH_CONFIG_FILE="${INSTALL_DIR}/confluence/WEB-INF/classes/seraph-config.xml"
+            ;;
+        *)
+            fatal "${LOG_LOCATION_PREFIX}: Attempted to manage autologin cookie session age for ${PRODUCT} but this is not possible for this application type"
+            exit 57
+    esac
+
+    if [[ ${MANAGE_AUTOLOGIN_COOKIE_AGE} -eq 0 ]]; then
+        # if we are managing the value and have it set to disabled (0), remove it from confluence 
+        # as by default conf does not have this block, and revert to shipped system default for jira
+        if [[ "${PRODUCT}" == "jira" ]]; then
+            debug "${LOG_LOCATION_PREFIX}: cookie management is set to disabled, will attempt to set back to system deafult"
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n
+set \$sec_conf/parameters/init-param[param-name/#text='${AUTOLOGIN_COOKIE_PARAM}']/param-value/#text ${JIRA_COOKIE_AGE_DEFAULT}")
+        elif [[ "${PRODUCT}" == "confluence" ]]; then
+            debug "${LOG_LOCATION_PREFIX}: cookie management is set to disabled, will attempt to remove values"
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n
+rm \$sec_conf/parameters/init-param[param-name/#text='${AUTOLOGIN_COOKIE_PARAM}']")
+        fi
+    fi
+
+    if [[ ${MANAGE_AUTOLOGIN_COOKIE_AGE} -eq 1 ]]; then
+        # if we are managing the value and it is enabled (1), then ensure that requested value
+        # is set in seraph-config.xml
+
+        # make sure we have a cookie age value, if not exit (conf has no default so this check is really for conf systems)
+        if [ -z ${AUTOLOGIN_COOKIE_AGE:-} ]; then
+            fatal "${LOG_LOCATION_PREFIX}: Attempted to manage autologin cookie session age for ${PRODUCT} but no session age value supplied
+                   Please supply session age value via variable 'AUTOLOGIN_COOKIE_AGE'"
+            exit 58
+        fi
+
+        # if we are managing the value, check to see if the XML block is present, if so modify it, it not add it
+        debug "${LOG_LOCATION_PREFIX}: cookie management is set to enabled, will attempt to manage values"
+        if [[ $(grep "param-name.*${AUTOLOGIN_COOKIE_PARAM}" $SEREPH_CONFIG_FILE) ]]; then
+            # check to see if the XML block already exists, if it does then modify the value
+            debug "${LOG_LOCATION_PREFIX}: cookie management already implemented, will attempt a modify"
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n
+set \$sec_conf/parameters/init-param[param-name/#text='${AUTOLOGIN_COOKIE_PARAM}']/param-value/#text ${AUTOLOGIN_COOKIE_AGE}")
+        else 
+            # if the XML block does not exist...then add the values
+            debug "${LOG_LOCATION_PREFIX}: cookie management is not yet implemented, adding values to seraph-config.xml"
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n
+set \$sec_conf/parameters/init-param[last() +1]/param-name/#text '${AUTOLOGIN_COOKIE_PARAM}'")
+            AUGEAS_DOC=$(printf "${AUGEAS_DOC}\n
+set \$sec_conf/parameters/init-param[last()]/param-value/#text ${AUTOLOGIN_COOKIE_AGE}")
+        fi
+    fi
+
+    # run augtool command with whatever commands we have constructed
+    augtool -LA ${AUGTOOL_DEBUG} <<EOF
+        set /augeas/load/xml/lens "Xml.lns"
+        set /augeas/load/xml/incl "${SEREPH_CONFIG_FILE}"
+        load
+        defvar sereph_xml "/files/${SEREPH_CONFIG_FILE}"
+        defvar sec_conf \$sereph_xml/security-config
+        ${AUGEAS_DOC}
+        save
+        print /augeas//error
+EOF
+fi
