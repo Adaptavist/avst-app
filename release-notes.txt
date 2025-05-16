@@ -1,3 +1,9 @@
+Release 0.77, 16th May 2025
+---------------------------
+
+Added the ability to manage OPTIONAL_OVERRIDES in synchrony start-synchrony.sh, this is controlled
+by the avst-app.cfg.sh config variable SYNCHRONY_OPTIONAL_OVERRIDES
+
 Release 0.76, 3rd April 2025
 ----------------------------
 
